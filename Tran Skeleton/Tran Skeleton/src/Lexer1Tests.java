@@ -114,7 +114,7 @@ public class Lexer1Tests {
 
     @Test
     public void first_test() {
-        var l = new Lexer("h");
+        var l = new Lexer("h ! ! || && &");
         try {
             var res = l.Lex();
 //            Assertions.assertEquals(4, res.size());
