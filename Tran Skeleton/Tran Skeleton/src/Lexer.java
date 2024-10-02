@@ -29,9 +29,7 @@ public class Lexer {
         punct.add(','); //COMMA
         punct.add('<'); //LESSTHAN
         punct.add('>'); //GREATERTHAN
-        punct.add('!'); //used for notequal and NOT
-        punct.add('&'); //Used for AND boolean operation
-        punct.add('|'); //Used for OR boolean operation
+        punct.add('!'); //used for notequal
         return punct;
     }
 
@@ -385,35 +383,11 @@ public class Lexer {
                 }
                 else
                 {
-                    Token NOT = new Token(Token.TokenTypes.NOT, row_number, start_col);
-                    return NOT;
+                    throw new SyntaxErrorException("! not recognized", row_number, start_col);
                 }
             case '.':
                 Token dot = new Token(Token.TokenTypes.DOT, row_number, start_col);
                 return dot;
-            case '&':
-                if(next_character == '&')
-                {
-                    Token and = new Token(Token.TokenTypes.AND, row_number, start_col);
-                    input.getCharacter();
-                    col_number++;
-                    return and;
-                }
-                else
-                {
-                    throw new SyntaxErrorException("Something went wrong parsing the AND", row_number, start_col);
-                }
-            case '|':
-                if(next_character == '|') {
-                    Token or = new Token(Token.TokenTypes.OR, row_number, start_col);
-                    input.getCharacter();
-                    col_number++;
-                    return or;
-                }
-                else
-                {
-                    throw new SyntaxErrorException("Something went wrong parsing the OR", row_number, start_col);
-                }
 
             default:
                 throw new SyntaxErrorException("something went wrong parsing punctuation",row_number,col_number);

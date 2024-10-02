@@ -112,29 +112,6 @@ public class Lexer1Tests {
         }
     }
 
-    @Test
-    public void first_test() {
-        var l = new Lexer("h ! ! || && &&");
-        try {
-            var res = l.Lex();
-//            Assertions.assertEquals(4, res.size());
-//            Assertions.assertEquals(Token.TokenTypes.NEWLINE, res.get(0).getType());
-//            Assertions.assertEquals(Token.TokenTypes.WORD, res.get(1).getType());
-//            Assertions.assertEquals("Hello", res.get(1).getValue());
-//            Assertions.assertEquals(Token.TokenTypes.WORD, res.get(2).getType());
-//            Assertions.assertEquals("World", res.get(2).getValue());
-//            Assertions.assertEquals(Token.TokenTypes.NEWLINE, res.get(3).getType());
-
-            for(int i = 0; i < res.size(); i++)
-            {
-                System.out.println(res.get(i).getValue());
-                System.out.println(res.get(i).getType());
-            }
-        }
-        catch (Exception e) {
-            Assertions.fail("exception occurred: " +  e.getMessage());
-        }
-    }
 
     @Test
     public void test_numbers() {
