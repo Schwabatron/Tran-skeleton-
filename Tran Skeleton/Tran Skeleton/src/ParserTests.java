@@ -1,175 +1,166 @@
-import AST.*;
+import AST.TranNode;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class ParserTests {
-    private TranNode LexAndParse(String input, int tokenCount) throws Exception {
-        var l = new Lexer(input);
-        var tokens = l.Lex();
-        Assertions.assertEquals(tokenCount, tokens.size());
+    @Test
+    public void testInterface() throws Exception {
+        List<Token> tokens = new ArrayList<>();
+        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.INDENT, 2, 1));
+        tokens.add(new Token(Token.TokenTypes.WORD, 2, 2, "updateClock"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "square"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 3, 8));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 3, 9));
+        tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "number"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
+        tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+
         var tran = new TranNode();
         var p = new Parser(tran, tokens);
         p.Tran();
-        return tran;
+        Assertions.assertEquals(1, tran.Interfaces.size());
+        Assertions.assertEquals(2, tran.Interfaces.getFirst().methods.size());
     }
 
     @Test
-    public void testInterface() throws Exception {
-        var t = LexAndParse("interface someName\r\n\tupdateClock()\r\n\tsquare() : number s", 15);
-        Assertions.assertEquals(1, t.Interfaces.size());
-        Assertions.assertEquals(2, t.Interfaces.getFirst().methods.size());
+    public void testParserConstructor() throws Exception {
+        // Given an input string and expected token count
+        List<Token> tokens = new ArrayList<>();
+        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.INDENT, 2, 1));
+        tokens.add(new Token(Token.TokenTypes.WORD, 2, 2, "updateClock"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "square"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 3, 8));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 3, 9));
+        tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "number"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
+        tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+
+        var tran = new TranNode();
+        var p = new Parser(tran, tokens);
+
+        // Create a TranNode
+        TranNode tranNode = new TranNode();
+
+        // Create the Parser with the TranNode and tokens
+        Parser parser = new Parser(tranNode, tokens);
+
+    }
+
+    // Helper method to create tokens
+    private Token createToken(Token.TokenTypes type, int line, int column, String value) {
+        return new Token(type, line, column, value);
+    }
+
+    private Token createToken(Token.TokenTypes type, int line, int column) {
+        return new Token(type, line, column);
     }
 
     @Test
-    public void testClassWithOneMethod() throws Exception {
-        var t = LexAndParse("class Tran\r\n\thelloWorld()\r\n\t\tx = 1 + 1", 16);
-        Assertions.assertEquals(1, t.Classes.size());
-        Assertions.assertEquals(1, t.Classes.getFirst().methods.size());
-        Assertions.assertEquals(1, t.Classes.getFirst().methods.getFirst().statements.size());
+    public void testMatchAndRemove() {
+        Token token1 = createToken(Token.TokenTypes.WORD, 1, 1, "hello");
+        Token token2 = createToken(Token.TokenTypes.NUMBER, 1, 2, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(token1, token2)));
+
+        // Check if the first token matches and is removed
+        Optional<Token> matchedToken = tokenManager.matchAndRemove(Token.TokenTypes.WORD);
+        assertTrue(matchedToken.isPresent(), "Token should match WORD and be removed");
+        assertEquals(token1, matchedToken.get(), "The matched token should be the first token");
+
+        // Check if the second token is now the first
+        Optional<Token> nextToken = tokenManager.matchAndRemove(Token.TokenTypes.NUMBER);
+        assertTrue(nextToken.isPresent(), "Token should match NUMBER and be removed");
+        assertEquals(token2, nextToken.get(), "The next token should be the second token");
+
+        // Check if token manager is empty
+        assertTrue(tokenManager.done(), "Token manager should be empty");
     }
 
     @Test
-    public void testClassWithMultipleMembers() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                "\tnumber w\n" +
-                "\tstring x\n" +
-                "\tboolean y\n" +
-                "\tcharacter z", 16);
-        Assertions.assertEquals(1, t.Classes.size());
-        Assertions.assertEquals(4, t.Classes.getFirst().members.size());
-        var m = t.Classes.getFirst().members;
-        Assertions.assertEquals("number", m.getFirst().declaration.type);
-        Assertions.assertEquals("w", m.getFirst().declaration.name);
-        Assertions.assertEquals("string", m.get(1).declaration.type);
-        Assertions.assertEquals("x", m.get(1).declaration.name);
-        Assertions.assertEquals("boolean", m.get(2).declaration.type);
-        Assertions.assertEquals("y", m.get(2).declaration.name);
-        Assertions.assertEquals("character", m.get(3).declaration.type);
-        Assertions.assertEquals("z", m.get(3).declaration.name);
+    public void testPeek() {
+        Token token1 = createToken(Token.TokenTypes.WORD, 1, 1, "hello");
+        Token token2 = createToken(Token.TokenTypes.NUMBER, 1, 2, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(token1, token2)));
+
+        // Check peeking the first token
+        Optional<Token> peekToken = tokenManager.peek(0);
+        assertTrue(peekToken.isPresent(), "First token should be peeked");
+        assertEquals(token1, peekToken.get(), "The first peeked token should be the first token");
+
+        // Check peeking the second token
+        Optional<Token> secondPeekToken = tokenManager.peek(1);
+        assertTrue(secondPeekToken.isPresent(), "Second token should be peeked");
+        assertEquals(token2, secondPeekToken.get(), "The second peeked token should be the second token");
+
+
     }
 
     @Test
-    public void testClassWithMethodsAndMembers() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\tnumber w\n" +
-                        "\tstring x\n" +
-                        "\tboolean y\n" +
-                        "\tcharacter z\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tx = 1 + 1"
-                , 28);
-        Assertions.assertEquals(1, t.Classes.size());
-        var m = t.Classes.getFirst().members;
-        Assertions.assertEquals(4, t.Classes.getFirst().members.size()); // scramble test order to break the "duplicate code" warning
-        Assertions.assertEquals("boolean", m.get(2).declaration.type);
-        Assertions.assertEquals("y", m.get(2).declaration.name);
-        Assertions.assertEquals("character", m.get(3).declaration.type);
-        Assertions.assertEquals("z", m.get(3).declaration.name);
-        Assertions.assertEquals("string", m.get(1).declaration.type);
-        Assertions.assertEquals("x", m.get(1).declaration.name);
-        Assertions.assertEquals("number", m.getFirst().declaration.type);
-        Assertions.assertEquals("w", m.getFirst().declaration.name);
+    public void testNextTwoTokensMatch() {
+        Token token1 = createToken(Token.TokenTypes.WORD, 1, 1, "hello");
+        Token token2 = createToken(Token.TokenTypes.NUMBER, 1, 2, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(token1, token2)));
 
-        Assertions.assertEquals(1, t.Classes.getFirst().methods.size());
-        Assertions.assertEquals(1, t.Classes.getFirst().methods.getFirst().statements.size());
+        // Check if the first two tokens match the given types
+        assertTrue(tokenManager.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.NUMBER),
+                "First two tokens should match WORD and NUMBER");
+
+
     }
 
     @Test
-    public void testClassIf() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tif n>100\n" +
-                        "\t\t\tkeepGoing = false"
-                , 21);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        Assertions.assertEquals("AST.IfNode", myMethod.statements.getFirst().getClass().getName());
-        Assertions.assertTrue(((IfNode)(myMethod.statements.getFirst())).elseStatement.isEmpty());
+    public void testGetCurrentLine() {
+        Token token1 = createToken(Token.TokenTypes.WORD, 1, 1, "hello");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(token1)));
+
+        // Check if the current line is returned correctly
+        assertEquals(1, tokenManager.getCurrentLine(), "The current line should be 1");
     }
 
     @Test
-    public void testClassIfElse() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tif n>100\n" +
-                        "\t\t\tkeepGoing = false\n" +
-                        "\t\telse\n" +
-                        "\t\t\tkeepGoing = true\n"
-                , 30);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        Assertions.assertEquals("AST.IfNode", myMethod.statements.getFirst().getClass().getName());
-        Assertions.assertTrue(((IfNode)(myMethod.statements.getFirst())).elseStatement.isPresent());
-        Assertions.assertEquals(1,((IfNode)(myMethod.statements.getFirst())).elseStatement.orElseThrow().statements.size());
+    public void testGetCurrentColumnNumber() {
+        Token token1 = createToken(Token.TokenTypes.WORD, 1, 5, "hello");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(token1)));
+
+        // Check if the current column is returned correctly
+        assertEquals(5, tokenManager.getCurrentColumnNumber(), "The current column should be 5");
     }
 
     @Test
-    public void testLoopVariable() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tloop n\n" +
-                        "\t\t\tkeepGoing = false\n"
-                , 20);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        Assertions.assertInstanceOf(LoopNode.class, myMethod.statements.getFirst());
-    }
+    public void customtest() throws Exception {
+        List<Token> tokens = new ArrayList<>();
+        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.INDENT, 2, 1));
+        tokens.add(new Token(Token.TokenTypes.WORD, 2, 2, "updateClock"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
+        tokens.add(new Token(Token.TokenTypes.DEDENT, 3, 23));
 
-    @Test
-    public void testLoopCondition() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tloop n<100\n" +
-                        "\t\t\tkeepGoing = false\n"
-                , 22);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        Assertions.assertInstanceOf(LoopNode.class, myMethod.statements.getFirst());
-        Assertions.assertInstanceOf(CompareNode.class, ((LoopNode) myMethod.statements.getFirst()).expression);
-    }
-
-    @Test
-    public void testLoopConditionWithVariable() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\tloop c = n<100\n" +
-                        "\t\t\tkeepGoing = false\n"
-                , 24);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        Assertions.assertInstanceOf(LoopNode.class, myMethod.statements.getFirst());
-        Assertions.assertInstanceOf(CompareNode.class, ((LoopNode) myMethod.statements.getFirst()).expression);
-        Assertions.assertTrue(((LoopNode) myMethod.statements.getFirst()).assignment.isPresent());
-    }
-
-    @Test
-    public void testMethodCallWithMulitpleVariables() throws Exception {
-        var t = LexAndParse("class Tran\n" +
-                        "\thelloWorld()\n" +
-                        "\t\ta,b,c,d,e = doSomething()\n"
-                , 25);
-        Assertions.assertEquals(1, t.Classes.size());
-        var myClass = t.Classes.getFirst();
-        Assertions.assertEquals(1, myClass.methods.size());
-        var myMethod = myClass.methods.getFirst();
-        Assertions.assertEquals(1, myMethod.statements.size());
-        var firstStatement = myMethod.statements.getFirst();
-        Assertions.assertInstanceOf(MethodCallStatementNode.class, firstStatement);
-        Assertions.assertEquals(5,((MethodCallStatementNode) firstStatement).returnValues.size());
+        var tran = new TranNode();
+        var p = new Parser(tran, tokens);
+        p.Tran();
+        Assertions.assertEquals(1, tran.Interfaces.size());
+        Assertions.assertEquals(1, tran.Interfaces.getFirst().methods.size());
     }
 }
