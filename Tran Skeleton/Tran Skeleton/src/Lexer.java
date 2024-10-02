@@ -51,6 +51,9 @@ public class Lexer {
         keywords.put("private", Token.TokenTypes.PRIVATE); //PRIVATE
         keywords.put("shared", Token.TokenTypes.SHARED); //SHARED
         keywords.put("construct", Token.TokenTypes.CONSTRUCT); //CONSTRUCT
+        keywords.put("not", Token.TokenTypes.NOT); //NOT
+        keywords.put("and", Token.TokenTypes.AND); //AND
+        keywords.put("or", Token.TokenTypes.OR); //OR
         return keywords;
     }
 
