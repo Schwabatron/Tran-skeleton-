@@ -29,7 +29,7 @@ public class Lexer {
         punct.add(','); //COMMA
         punct.add('<'); //LESSTHAN
         punct.add('>'); //GREATERTHAN
-        punct.add('!'); //used for notequal and NOT
+        punct.add('!'); //used for notequal
         punct.add('&'); //Used for AND boolean operation
         punct.add('|'); //Used for OR boolean operation
         return punct;
@@ -72,6 +72,11 @@ public class Lexer {
                 //If it is "consume" the space in order to iterate the position to the next character
                 input.getCharacter();
                 col_number++;
+            }
+            if(current_character == '\t')
+            {
+                col_number += 4;
+                input.getCharacter();
             }
 
             //Checking if the current character is a newLine
@@ -453,14 +458,11 @@ public class Lexer {
         //iterating column
         col_number++;
         //Checking if the buffer is empty
-        if (!buffer.isEmpty())
-        {
-            //If it isnt then we will add the quoted string token
-            Token QS = new Token(Token.TokenTypes.QUOTEDSTRING, row_number, start_col, buffer);
-            return QS;
-        }
 
-        throw new SyntaxErrorException("Something went wrong parsing the quoted string", row_number, start_col);
+            //If it isnt then we will add the quoted string token
+        Token QS = new Token(Token.TokenTypes.QUOTEDSTRING, row_number, start_col, buffer);
+        return QS;
+
     }
 
 }
