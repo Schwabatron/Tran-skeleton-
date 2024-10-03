@@ -142,7 +142,7 @@ public class Lexer1Tests {
 
     @Test
     public void test_punctuation() {
-        var l = new Lexer("<>= = / + % - * >= :,.");
+        var l = new Lexer("<>= = / + % - * >= :,. ! && ||");
         try {
             var res = l.Lex();
 

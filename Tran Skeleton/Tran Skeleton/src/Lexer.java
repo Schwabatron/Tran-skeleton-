@@ -30,6 +30,8 @@ public class Lexer {
         punct.add('<'); //LESSTHAN
         punct.add('>'); //GREATERTHAN
         punct.add('!'); //used for notequal
+        punct.add('&'); //Used for AND boolean operation
+        punct.add('|'); //Used for OR boolean operation
         return punct;
     }
 
@@ -49,9 +51,6 @@ public class Lexer {
         keywords.put("private", Token.TokenTypes.PRIVATE); //PRIVATE
         keywords.put("shared", Token.TokenTypes.SHARED); //SHARED
         keywords.put("construct", Token.TokenTypes.CONSTRUCT); //CONSTRUCT
-        keywords.put("not", Token.TokenTypes.NOT); //NOT
-        keywords.put("and", Token.TokenTypes.AND); //AND
-        keywords.put("or", Token.TokenTypes.OR); //OR
         return keywords;
     }
 
@@ -388,11 +387,35 @@ public class Lexer {
                 }
                 else
                 {
-                    throw new SyntaxErrorException("! not recognized", row_number, start_col);
+                    Token NOT = new Token(Token.TokenTypes.NOT, row_number, start_col);
+                    return NOT;
                 }
             case '.':
                 Token dot = new Token(Token.TokenTypes.DOT, row_number, start_col);
                 return dot;
+            case '&':
+                if(next_character == '&')
+                {
+                    Token and = new Token(Token.TokenTypes.AND, row_number, start_col);
+                    input.getCharacter();
+                    col_number++;
+                    return and;
+                }
+                else
+                {
+                    throw new SyntaxErrorException("Something went wrong parsing the AND", row_number, start_col);
+                }
+            case '|':
+                if(next_character == '|') {
+                    Token or = new Token(Token.TokenTypes.OR, row_number, start_col);
+                    input.getCharacter();
+                    col_number++;
+                    return or;
+                }
+                else
+                {
+                    throw new SyntaxErrorException("Something went wrong parsing the OR", row_number, start_col);
+                }
 
             default:
                 throw new SyntaxErrorException("something went wrong parsing punctuation",row_number,col_number);
