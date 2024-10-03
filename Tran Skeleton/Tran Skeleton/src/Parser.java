@@ -72,10 +72,12 @@ public class Parser {
 
     private Optional<MethodHeaderNode> parseMethod() throws SyntaxErrorException {
         MethodHeaderNode methodNode = new MethodHeaderNode();
+        String name = tokens.peek(0).get().getValue();
         if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
         {
             throw new SyntaxErrorException("Expected Method", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+        methodNode.name = name;
         if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
         {
             throw new SyntaxErrorException("Expected Lparen", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());

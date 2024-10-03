@@ -156,7 +156,7 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
         tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
         tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
-        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "square"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "JacksMethod"));
         tokens.add(new Token(Token.TokenTypes.LPAREN, 3, 8));
         tokens.add(new Token(Token.TokenTypes.RPAREN, 3, 9));
         tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
@@ -186,5 +186,7 @@ public class ParserTests {
         p.Tran();
         Assertions.assertEquals("someName", tran.Interfaces.get(1).name);
         Assertions.assertEquals(2, tran.Interfaces.get(1).methods.size());
+        Assertions.assertEquals("updateClock", tran.Interfaces.get(0).methods.get(0).name);
+        Assertions.assertEquals("JacksMethod", tran.Interfaces.get(0).methods.get(1).name);
     }
 }
