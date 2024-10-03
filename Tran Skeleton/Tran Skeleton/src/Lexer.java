@@ -74,6 +74,11 @@ public class Lexer {
                 input.getCharacter();
                 col_number++;
             }
+            if(current_character == '\t')
+            {
+                col_number += 4;
+                input.getCharacter();
+            }
 
             //Checking if the current character is a newLine
             if (current_character == '\n') {
@@ -430,14 +435,11 @@ public class Lexer {
         //iterating column
         col_number++;
         //Checking if the buffer is empty
-        if (!buffer.isEmpty())
-        {
-            //If it isnt then we will add the quoted string token
-            Token QS = new Token(Token.TokenTypes.QUOTEDSTRING, row_number, start_col, buffer);
-            return QS;
-        }
 
-        throw new SyntaxErrorException("Something went wrong parsing the quoted string", row_number, start_col);
+            //If it isnt then we will add the quoted string token
+        Token QS = new Token(Token.TokenTypes.QUOTEDSTRING, row_number, start_col, buffer);
+        return QS;
+
     }
 
 }
