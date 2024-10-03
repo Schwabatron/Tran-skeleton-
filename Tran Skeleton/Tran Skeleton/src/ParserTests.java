@@ -54,6 +54,7 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
         tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
 
+
         var tran = new TranNode();
         var p = new Parser(tran, tokens);
 
@@ -155,12 +156,35 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
         tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
         tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
-        tokens.add(new Token(Token.TokenTypes.DEDENT, 3, 23));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "square"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 3, 8));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 3, 9));
+        tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "number"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
+        tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.INDENT, 2, 1));
+        tokens.add(new Token(Token.TokenTypes.WORD, 2, 2, "updateClock"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 2, 13));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 2, 14));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 2, "square"));
+        tokens.add(new Token(Token.TokenTypes.LPAREN, 3, 8));
+        tokens.add(new Token(Token.TokenTypes.RPAREN, 3, 9));
+        tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "number"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
+        tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+
 
         var tran = new TranNode();
         var p = new Parser(tran, tokens);
         p.Tran();
-        Assertions.assertEquals(1, tran.Interfaces.size());
-        Assertions.assertEquals(1, tran.Interfaces.getFirst().methods.size());
+        Assertions.assertEquals(2, tran.Interfaces.size());
+        Assertions.assertEquals(2, tran.Interfaces.get(1).methods.size());
     }
 }

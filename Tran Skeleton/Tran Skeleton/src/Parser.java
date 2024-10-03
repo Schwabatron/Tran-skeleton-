@@ -16,9 +16,13 @@ public class Parser {
 
     // Tran = { Class | Interface }
     public void Tran() throws SyntaxErrorException {
-        Optional<InterfaceNode> interfaceNode = parseInterface();
-        if (interfaceNode.isPresent()) {
-            top.Interfaces.add(interfaceNode.get());
+        while(!tokens.done())
+        {
+            Optional<InterfaceNode> interfaceNode = parseInterface();
+            if (interfaceNode.isPresent()) {
+                top.Interfaces.add(interfaceNode.get());
+            }
+
         }
     }
 
@@ -49,6 +53,7 @@ public class Parser {
              }
              if(tokens.peek(0).get().getType() == Token.TokenTypes.DEDENT)
              {
+                 tokens.matchAndRemove(Token.TokenTypes.DEDENT);
                  break;
              }
              RequireNewLine();
