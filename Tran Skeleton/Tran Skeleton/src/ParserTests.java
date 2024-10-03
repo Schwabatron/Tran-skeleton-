@@ -184,7 +184,7 @@ public class ParserTests {
         var tran = new TranNode();
         var p = new Parser(tran, tokens);
         p.Tran();
-        Assertions.assertEquals(2, tran.Interfaces.size());
+        Assertions.assertEquals("someName", tran.Interfaces.get(1).name);
         Assertions.assertEquals(2, tran.Interfaces.get(1).methods.size());
     }
 }

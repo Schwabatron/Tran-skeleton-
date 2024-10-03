@@ -36,10 +36,12 @@ public class Parser {
          {
              return Optional.empty(); //Not a interface return empty
          }
+         String name = tokens.peek(0).get().getValue();
          if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
          {
              throw new SyntaxErrorException("Expected Interface Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber()); //Interface needs a name following it
          }
+         interfaceNode.name = name;
          RequireNewLine(); //Checking for newline
          if (tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
          {
@@ -84,6 +86,7 @@ public class Parser {
         }
         if(!tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
         {
+            //Parsing a variable declaration
             if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
             {
                 throw new SyntaxErrorException("Expected Return type", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
