@@ -22,6 +22,10 @@ public class Parser {
             if (interfaceNode.isPresent()) {
                 top.Interfaces.add(interfaceNode.get());
             }
+            if(tokens.peek(0).isPresent() && tokens.peek(0).get().getType() == Token.TokenTypes.NEWLINE)
+            {
+                tokens.matchAndRemove(Token.TokenTypes.NEWLINE);
+            }
 
         }
     }
