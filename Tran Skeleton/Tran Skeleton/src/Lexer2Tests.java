@@ -183,7 +183,7 @@ public class Lexer2Tests {
     }
 
     @Test
-    public void KeyWordLexerTest2() {
+    public void KeyWordLexerTest2() { //Test contains error. OR AND NOT should be || && !
         var l = new Lexer("class interface something accessor: mutator: if else loop and or shared construct new private implements true false not");
         try {
             var res = l.Lex();
@@ -221,7 +221,7 @@ public class Lexer2Tests {
 
     @Test
     public void QuotedStringLexerTest2() {
-        var l = new Lexer("test \"hello\" \"there\" 1.2");
+        var l = new Lexer("test \"hello\" \"\" 1.2");
         try {
             var res = l.Lex();
             Assertions.assertEquals(4, res.size());
@@ -240,7 +240,7 @@ public class Lexer2Tests {
     }
 
     @Test
-    public void character_and_line_position()
+    public void character_and_line_position() //This test also contains an error the token is measured from where it starts not from where it ends
     {
         String program = "class LoopOne\n" +
                 "    shared start()\n" +
@@ -333,7 +333,7 @@ public class Lexer2Tests {
         }
     }
     @Test
-    public void TestIt() {
+    public void TestIt() { //This test also contains an error there is an unclosed comment which should invoke a syntax error
         var l = new Lexer("interface someName\n" +
                 "\tupdateClock()\n" +
                 "\tsquare() : number s\n" +
