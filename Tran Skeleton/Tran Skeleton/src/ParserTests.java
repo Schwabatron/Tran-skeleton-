@@ -178,6 +178,9 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.COLON, 3, 11));
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "number"));
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
+        tokens.add(new Token(Token.TokenTypes.COMMA, 3, 9));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "String"));
+        tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "salty"));
         tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
 
 
@@ -186,7 +189,18 @@ public class ParserTests {
         p.Tran();
         Assertions.assertEquals("someName", tran.Interfaces.get(1).name);
         Assertions.assertEquals(2, tran.Interfaces.get(1).methods.size());
-        Assertions.assertEquals("updateClock", tran.Interfaces.get(0).methods.get(0).name);
         Assertions.assertEquals("JacksMethod", tran.Interfaces.get(0).methods.get(1).name);
+        Assertions.assertEquals("s", tran.Interfaces.get(0).methods.get(1).returns.get(0).name);
+        Assertions.assertEquals("number", tran.Interfaces.get(0).methods.get(1).returns.get(0).type);
+        Assertions.assertEquals("s", tran.Interfaces.get(1).methods.get(1).returns.get(0).name);
+        Assertions.assertEquals("number", tran.Interfaces.get(1).methods.get(1).returns.get(0).type);
+        Assertions.assertEquals("salty", tran.Interfaces.get(1).methods.get(1).returns.get(1).name);
+        Assertions.assertEquals("String", tran.Interfaces.get(1).methods.get(1).returns.get(1).type);
+
+        for(int i = 0; i < tran.Interfaces.get(0).methods.get(1).returns.size(); ++i) {
+            System.out.println("type: " + tran.Interfaces.get(0).methods.get(1).returns.get(i).type + "\nname: " + tran.Interfaces.get(0).methods.get(1).returns.get(i).name);
+        }
+
+        //Assertions.assertEquals("number", tran.Interfaces.get(0).methods.get(1).parameters.get(0).type);
     }
 }

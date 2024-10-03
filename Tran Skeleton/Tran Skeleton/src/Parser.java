@@ -1,6 +1,7 @@
 import AST.InterfaceNode;
 import AST.MethodHeaderNode;
 import AST.TranNode;
+import AST.VariableDeclarationNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -88,17 +89,39 @@ public class Parser {
         }
         if(!tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
         {
-            //Parsing a variable declaration
-            if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+            if(tokens.peek(0).get().getType() != Token.TokenTypes.WORD)
             {
-                throw new SyntaxErrorException("Expected Return type", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                throw new SyntaxErrorException("Expected Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
             }
-            if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+            do
             {
-                throw new SyntaxErrorException("Expected return something", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-            }
+                Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
+                if(variableDeclarationNode.isPresent())
+                {
+                    methodNode.returns.add(variableDeclarationNode.get());
+                }
+            }while(!tokens.matchAndRemove(Token.TokenTypes.COMMA).isEmpty());
+
         }
         return Optional.of(methodNode);
+    }
+
+    private Optional<VariableDeclarationNode> parseVariable() throws SyntaxErrorException {
+
+        VariableDeclarationNode variableNode = new VariableDeclarationNode();
+        String type = tokens.peek(0).get().getValue();
+        if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Variable type", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        variableNode.type = type;
+        String name = tokens.peek(0).get().getValue();
+        if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Variable name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        variableNode.name = name;
+        return Optional.of(variableNode);
     }
 
 
