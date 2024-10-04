@@ -83,16 +83,29 @@ public class Parser {
         {
             throw new SyntaxErrorException("Expected Lparen", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+
+        if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+        {
+            do
+            {
+                Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
+                if(variableDeclarationNode.isPresent())
+                {
+                    methodNode.parameters.add(variableDeclarationNode.get());
+                }
+            }while(!tokens.matchAndRemove(Token.TokenTypes.COMMA).isEmpty());
+        }
+
         if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
         {
             throw new SyntaxErrorException("Expected Rparen", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
         if(!tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
         {
-            if(tokens.peek(0).get().getType() != Token.TokenTypes.WORD)
-            {
-                throw new SyntaxErrorException("Expected Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-            }
+//            if(tokens.peek(0).get().getType() != Token.TokenTypes.WORD)
+//            {
+//                throw new SyntaxErrorException("Expected Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//            }
             do
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
