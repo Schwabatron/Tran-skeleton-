@@ -4,16 +4,16 @@ import java.util.Optional;
 public class TokenManager {
     //Declaring the Tokens that will be parsed
     List<Token> Tokens;
-    private int token_position;
+    //private int token_position;
 
     public TokenManager(List<Token> tokens) {
         //Initializing the Token list with the Tokens passed in through the constructor
         this.Tokens = tokens;
-        this.token_position = 0;
+        //this.token_position = 0;
     }
 
     public boolean done() {
-        return token_position >= Tokens.size();
+        return Tokens.isEmpty();
     }
 
     /*
@@ -22,10 +22,15 @@ public class TokenManager {
     remove it and return it
      */
     public Optional<Token> matchAndRemove(Token.TokenTypes t) {
-        Token ret_token = Tokens.get(token_position); //Token that we are checking
+        if(done())
+        {
+            return Optional.empty();
+        }
+
+        Token ret_token = Tokens.getFirst(); //Token we will be checking
         if(ret_token.getType() == t) {
             //If the token is a match we will increment(remove) the token and return the token
-            token_position++;
+            Tokens.removeFirst();
             return Optional.of(ret_token);
         }
         else
@@ -37,7 +42,11 @@ public class TokenManager {
 
     public Optional<Token> peek(int i) {
         //Checking if my peek will peek past the end of the token stream
-        if(token_position + i  >= Tokens.size())
+        if(done())
+        {
+            return Optional.empty();
+        }
+        if(i > Tokens.size())
         {
             //If it does then return empty and handle it
             return Optional.empty();
@@ -45,7 +54,7 @@ public class TokenManager {
         else
         {
             //otherwise return the token at peeked position
-            return Optional.of(Tokens.get(token_position + i));
+            return Optional.of(Tokens.get(i));
         }
     }
 
@@ -72,11 +81,11 @@ public class TokenManager {
      */
     public int getCurrentLine()
     {
-        return Tokens.get(token_position).getLineNumber();
+        return Tokens.getFirst().getLineNumber();
     }
 
     public int getCurrentColumnNumber()
     {
-        return Tokens.get(token_position).getColumnNumber();
+        return Tokens.getFirst().getColumnNumber();
     }
 }

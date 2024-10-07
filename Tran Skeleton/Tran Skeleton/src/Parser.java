@@ -19,15 +19,14 @@ public class Parser {
     public void Tran() throws SyntaxErrorException {
         while(!tokens.done())
         {
+            if (tokens.peek(0).get().getType() != Token.TokenTypes.INTERFACE)
+            {
+                RequireNewLine();
+            }
             Optional<InterfaceNode> interfaceNode = parseInterface();
             if (interfaceNode.isPresent()) {
                 top.Interfaces.add(interfaceNode.get());
             }
-            if(tokens.peek(0).isPresent() && tokens.peek(0).get().getType() == Token.TokenTypes.NEWLINE)
-            {
-                tokens.matchAndRemove(Token.TokenTypes.NEWLINE);
-            }
-
         }
     }
 
@@ -43,11 +42,14 @@ public class Parser {
              throw new SyntaxErrorException("Expected Interface Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber()); //Interface needs a name following it
          }
          interfaceNode.name = name;
+
          RequireNewLine(); //Checking for newline
+
          if (tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
          {
              throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
          }
+
          while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
          {
              if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
@@ -58,13 +60,11 @@ public class Parser {
                      interfaceNode.methods.add(methodNode.get());
                  }
              }
-             if(tokens.peek(0).get().getType() == Token.TokenTypes.DEDENT)
+             if( tokens.peek(0).get().getType() != Token.TokenTypes.DEDENT)
              {
-                 tokens.matchAndRemove(Token.TokenTypes.DEDENT);
-                 break;
+                 RequireNewLine();
              }
-             RequireNewLine();
-             //Optional<MethodHeaderNode> methodNode = parseMethod();
+
          }
 
          return Optional.of(interfaceNode);

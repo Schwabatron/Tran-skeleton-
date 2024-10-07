@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ParserTests {
     @Test
@@ -148,7 +147,10 @@ public class ParserTests {
     @Test
     public void customtest() throws Exception {
         List<Token> tokens = new ArrayList<>();
-        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 20, "interface"));
         tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
         tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
         tokens.add(new Token(Token.TokenTypes.INDENT, 2, 1));
@@ -164,6 +166,10 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "s"));
         tokens.add(new Token(Token.TokenTypes.NEWLINE, 2, 15));
         tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
         tokens.add(new Token(Token.TokenTypes.INTERFACE, 1, 1, "interface"));
         tokens.add(new Token(Token.TokenTypes.WORD, 1, 11, "someName"));
         tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
@@ -181,7 +187,11 @@ public class ParserTests {
         tokens.add(new Token(Token.TokenTypes.COMMA, 3, 9));
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 13, "String"));
         tokens.add(new Token(Token.TokenTypes.WORD, 3, 20, "salty"));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
         tokens.add(new Token(Token.TokenTypes.DEDENT, 4, 23));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+        tokens.add(new Token(Token.TokenTypes.NEWLINE, 1, 19));
+
 
 
         var tran = new TranNode();
@@ -203,4 +213,73 @@ public class ParserTests {
 
         //Assertions.assertEquals("number", tran.Interfaces.get(0).methods.get(1).parameters.get(0).type);
     }
+
+    @Test
+    public void tokenManagerDoneTest(){
+        // 0 Token Input
+        TokenManager emptyManager = new TokenManager(new LinkedList<>());
+        assertTrue(emptyManager.done(), "Token manager should be empty");
+
+        // 1 Token Input
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        TokenManager wordTokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken)));
+        wordTokenManager.matchAndRemove(Token.TokenTypes.WORD);
+        assertTrue(wordTokenManager.done(), "Token manager should be done");
+    }
+
+    @Test
+    public void tokenManagerMatchAndRemoveTest(){
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        TokenManager wordTokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken)));
+        wordTokenManager.matchAndRemove(Token.TokenTypes.WORD);
+        assertTrue(wordTokenManager.done(), "Token manager should be done");
+    }
+
+    @Test
+    public void tokenManagerPeekTest(){
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        Token numberToken = createToken(Token.TokenTypes.NUMBER, 1, 2, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken, numberToken)));
+        Optional<Token> peekToken = tokenManager.peek(0);
+        assertTrue(peekToken.isPresent(), "First token should be peeked");
+        peekToken = tokenManager.peek(1);
+        assertTrue(peekToken.isPresent(), "Second token should be peeked");
+        assertThrows(IndexOutOfBoundsException.class, () -> tokenManager.peek(2));
+        assertThrows(IndexOutOfBoundsException.class, () -> tokenManager.peek(-1));
+    }
+
+    @Test
+    public void tokenManagerNextTwoTokensMatchTest(){
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        Token numberToken = createToken(Token.TokenTypes.NUMBER, 1, 2, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken, numberToken)));
+        assertTrue(tokenManager.nextTwoTokensMatch(Token.TokenTypes.WORD,Token.TokenTypes.NUMBER));
+    }
+
+    @Test
+    public void tokenManagerGetCurrentLineTest(){
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        Token newLineToken = createToken(Token.TokenTypes.NEWLINE, 1, 2, "newline");
+        Token numberToken = createToken(Token.TokenTypes.NUMBER, 2, 3, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken, numberToken)));
+        assertTrue(tokenManager.getCurrentLine() == 1, "The current line should be 1");
+        tokenManager.matchAndRemove(Token.TokenTypes.WORD);
+        tokenManager.matchAndRemove(Token.TokenTypes.NEWLINE);
+        assertTrue(tokenManager.getCurrentLine() == 2, "The current line should be 2");
+    }
+
+    @Test
+    public void tokenManagerGetCurrentColumnNumberTest(){
+        Token wordToken = createToken(Token.TokenTypes.WORD, 1, 1, "test");
+        Token newLineToken = createToken(Token.TokenTypes.INDENT, 1, 2, "newline");
+        Token numberToken = createToken(Token.TokenTypes.NUMBER, 2, 5, "123");
+        TokenManager tokenManager = new TokenManager(new LinkedList<>(Arrays.asList(wordToken, numberToken)));
+        assertTrue(tokenManager.getCurrentColumnNumber() == 1, "The current column should be 1");
+        tokenManager.matchAndRemove(Token.TokenTypes.WORD);
+        tokenManager.matchAndRemove(Token.TokenTypes.INDENT);
+        assertTrue(tokenManager.getCurrentColumnNumber() == 5, "The current column should be 5");
+    }
+
+
+
 }
