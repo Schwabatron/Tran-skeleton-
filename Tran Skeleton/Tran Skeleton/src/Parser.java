@@ -23,10 +23,15 @@ public class Parser {
             {
                 RequireNewLine();
             }
-            Optional<InterfaceNode> interfaceNode = parseInterface();
-            if (interfaceNode.isPresent()) {
-                top.Interfaces.add(interfaceNode.get());
+            else
+            {
+                Optional<InterfaceNode> interfaceNode = parseInterface();
+                if (interfaceNode.isPresent()) {
+                    top.Interfaces.add(interfaceNode.get());
+                }
             }
+
+
         }
     }
 
