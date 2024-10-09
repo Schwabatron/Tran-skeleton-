@@ -1,7 +1,4 @@
-import AST.InterfaceNode;
-import AST.MethodHeaderNode;
-import AST.TranNode;
-import AST.VariableDeclarationNode;
+import AST.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,16 +16,23 @@ public class Parser {
     public void Tran() throws SyntaxErrorException {
         while(!tokens.done())
         {
-            if (tokens.peek(0).get().getType() != Token.TokenTypes.INTERFACE)
-            {
-                RequireNewLine();
-            }
-            else
+            if (tokens.peek(0).get().getType() == Token.TokenTypes.INTERFACE)
             {
                 Optional<InterfaceNode> interfaceNode = parseInterface();
                 if (interfaceNode.isPresent()) {
                     top.Interfaces.add(interfaceNode.get());
                 }
+            }
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.CLASS)
+            {
+                Optional<ClassNode> classnode = parseClass();
+                if (classnode.isPresent()) {
+                    top.Classes.add(classnode.get());
+                }
+            }
+            else
+            {
+                RequireNewLine();
             }
 
 
@@ -140,6 +144,24 @@ public class Parser {
         }
         variableNode.name = name;
         return Optional.of(variableNode);
+    }
+
+    //EBSN
+    //Class = "class" Identifier [ "implements" Identifier { "," Identifier } ] NEWLINE INDENT {Constructor NEWLINE | MethodDeclaration NEWLINE | Member NEWLINE } DEDENT
+    private Optional<ClassNode> parseClass() throws SyntaxErrorException {
+        ClassNode classNode = new ClassNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.CLASS).isEmpty())
+        {
+            return Optional.empty();
+        }
+        String name = tokens.peek(0).get().getValue();
+        if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Class Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        classNode.name = name;
+
+        return Optional.of(new ClassNode());
     }
 
 
