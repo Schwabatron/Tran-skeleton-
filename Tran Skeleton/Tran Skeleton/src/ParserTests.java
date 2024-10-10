@@ -499,7 +499,7 @@ class TranExample implements someName
     }
 
     /*
-    tests yet to pass
+    Test partially broken
      */
     @Test
     public void testAccessors() throws Exception {
@@ -518,6 +518,10 @@ class TranExample implements someName
         p.Tran();
         var clazz = tran.Classes.getFirst();
     }
+
+    /*
+    Test Partially Broken
+     */
     @Test
     public void testmutator() throws Exception {
         var tran = new TranNode();
@@ -546,7 +550,7 @@ class TranExample implements someName
 //        Parser p= new Parser(t,rev);
 //        p.Tran();
 //    }
-
+//
 //    @Test
 //    public void testClassIf() throws Exception {
 //        Lexer L = new Lexer("class Tran\n" +

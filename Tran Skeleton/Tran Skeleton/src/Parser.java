@@ -371,7 +371,15 @@ public class Parser {
         return Optional.of(constructorNode);
     }
 
-    //Member = VariableDeclaration ["accessor:" Statements] ["mutator:" Statements]
+    //Member = VariableDeclaration NEWLINE [ INDENT [ "accessor:" Statements] ["mutator:" Statements] DEDENT]
+    /*
+    number t
+        accessor:
+            value=t
+        mutator:
+            t=value
+
+     */
     private Optional<MemberNode> parseMember() throws SyntaxErrorException {
         MemberNode memberNode = new MemberNode();
 
@@ -385,28 +393,101 @@ public class Parser {
             throw new SyntaxErrorException("Expected Member", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        if(tokens.matchAndRemove(Token.TokenTypes.ACCESSOR).isPresent())
+        if(tokens.peek(0).get().getType() == Token.TokenTypes.DEDENT)
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
-            {
-                throw new SyntaxErrorException("Expected Accessor statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-            }
-            //Statements = INDENT {Statement NEWLINE } DEDENT
-            //Parse statements
-
-
-        }
-        if(tokens.matchAndRemove(Token.TokenTypes.MUTATOR).isPresent())
-        {
-            if(tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
-            {
-                throw new SyntaxErrorException("Expected Mutator statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-            }
-            //Statements = INDENT {Statement NEWLINE } DEDENT
-            //Parse statements
-
+            return Optional.of(memberNode);
         }
 
+        RequireNewLine();
+
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isPresent()) {
+
+            if (tokens.matchAndRemove(Token.TokenTypes.ACCESSOR).isPresent()) {
+                if (tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty()) {
+                    throw new SyntaxErrorException("Expected Accessor statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+
+                //Statements = INDENT {Statement NEWLINE } DEDENT
+                //Parse statements
+                if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+                    throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+                while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+                {
+                    if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+                    {
+                        Optional<IfNode> ifNode = parseIfNode();
+                        if(ifNode.isPresent())
+                        {
+                            memberNode.accessor.get().add(ifNode.get());
+                            RequireNewLine();
+                        }
+                    }
+                    else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent())
+                    {
+                        Optional<LoopNode> loopNode = parseLoopNode();
+                        if(loopNode.isPresent())
+                        {
+                            memberNode.accessor.get().add(loopNode.get());
+                            RequireNewLine();
+                        }
+                    }
+                    else
+                    {
+                        RequireNewLine();
+                    }
+
+                }
+                if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+                {
+                    throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+
+
+            }
+            if (tokens.matchAndRemove(Token.TokenTypes.MUTATOR).isPresent()) {
+                if (tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty()) {
+                    throw new SyntaxErrorException("Expected Mutator statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+                //Statements = INDENT {Statement NEWLINE } DEDENT
+                //Parse statements
+                if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+                    throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+                while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+                {
+                    if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+                    {
+                        Optional<IfNode> ifNode = parseIfNode();
+                        if(ifNode.isPresent())
+                        {
+                            memberNode.mutator.get().add(ifNode.get());
+                            RequireNewLine();
+                        }
+                    }
+                    else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent())
+                    {
+                        Optional<LoopNode> loopNode = parseLoopNode();
+                        if(loopNode.isPresent())
+                        {
+                            memberNode.mutator.get().add(loopNode.get());
+                            RequireNewLine();
+                        }
+                    }
+                    else
+                    {
+                        RequireNewLine();
+                    }
+
+                }
+                if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+                {
+                    throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+
+            }
+
+        }
 
         return Optional.of(memberNode);
     } //BROKEN
