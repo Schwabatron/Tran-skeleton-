@@ -69,7 +69,7 @@ public class Parser {
                      interfaceNode.methods.add(methodNode.get());
                  }
              }
-             if( tokens.peek(0).get().getType() != Token.TokenTypes.DEDENT)
+             else
              {
                  RequireNewLine();
              }
@@ -85,7 +85,8 @@ public class Parser {
         String name = tokens.peek(0).get().getValue();
         if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
         {
-            throw new SyntaxErrorException("Expected Method", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            //throw new SyntaxErrorException("Expected Method", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            return Optional.empty();
         }
         methodNode.name = name;
         if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
@@ -111,10 +112,6 @@ public class Parser {
         }
         if(!tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
         {
-//            if(tokens.peek(0).get().getType() != Token.TokenTypes.WORD)
-//            {
-//                throw new SyntaxErrorException("Expected Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-//            }
             do
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
@@ -134,7 +131,8 @@ public class Parser {
         String type = tokens.peek(0).get().getValue();
         if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
         {
-            throw new SyntaxErrorException("Expected Variable type", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            //throw new SyntaxErrorException("Expected Variable type", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            return Optional.empty();
         }
         variableNode.type = type;
         String name = tokens.peek(0).get().getValue();
@@ -160,10 +158,170 @@ public class Parser {
             throw new SyntaxErrorException("Expected Class Name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
         classNode.name = name;
+        if(tokens.matchAndRemove(Token.TokenTypes.IMPLEMENTS).isPresent())
+        {
+            //Loop to get all possible interface additions
+            do
+            {
+                String interfacename = tokens.peek(0).get().getValue();
+                if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+                {
+                    throw new SyntaxErrorException("Expected Interface name", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+                }
+                classNode.interfaces.add(interfacename);
+            }while(!tokens.matchAndRemove(Token.TokenTypes.COMMA).isEmpty());
 
-        return Optional.of(new ClassNode());
+        }
+
+        RequireNewLine();
+
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        //Logic to get all the Constructors, method declarations, and members before the dedent
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            //Constructor = "construct" "(" VariableDeclarations ")" NEWLINE MethodBody
+            if(tokens.peek(0).get().getType() == Token.TokenTypes.CONSTRUCT)
+            {
+                Optional<ConstructorNode> constructorNode = parseConstructor();
+                if(constructorNode.isPresent())
+                {
+                    classNode.constructors.add(constructorNode.get());
+                }
+            }
+            //MethodDeclaration = ["private"] ["shared"] MethodHeader NEWLINE MethodBody
+            else if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN) || tokens.peek(0).get().getType() == Token.TokenTypes.SHARED || tokens.peek(0).get().getType() == Token.TokenTypes.PRIVATE)
+            {
+                Optional<MethodDeclarationNode> methodDeclarationNode = parseMethodDeclaration();
+                if(methodDeclarationNode.isPresent())
+                {
+                    classNode.methods.add(methodDeclarationNode.get());
+                }
+            }
+            //Member = VariableDeclaration ["accessor:" Statements] ["mutator:" Statements]
+            else if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
+            {
+                Optional<MemberNode> memberNode = parseMember();
+                if(memberNode.isPresent())
+                {
+                    classNode.members.add(memberNode.get());
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
+
+
+        return Optional.of(classNode);
     }
 
+    //MethodDeclaration = ["private"] ["shared"] MethodHeader NEWLINE MethodBody
+    private Optional<MethodDeclarationNode> parseMethodDeclaration() throws SyntaxErrorException {
+        MethodDeclarationNode methodNode = new MethodDeclarationNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.SHARED).isPresent())
+        {
+            methodNode.isShared = true;
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.PRIVATE).isPresent())
+        {
+            methodNode.isPrivate = true;
+        }
+
+        Optional<MethodHeaderNode> methodHeaderNode = parseMethod();
+
+        if(methodHeaderNode.isPresent()) // transfer all the info from the methodheader node into the method declaration node
+        {
+            methodNode.name = methodHeaderNode.get().name;
+            methodNode.returns = methodHeaderNode.get().returns;
+            methodNode.parameters = methodHeaderNode.get().parameters;
+        }
+        else
+        {
+            throw new SyntaxErrorException("Expected MethodHeader", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        RequireNewLine();
+
+        //Parse Method body for statments and local var declarations
+        //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
+
+        return Optional.of(methodNode);
+    }
+
+    //Constructor = "construct" "(" VariableDeclarations ")" NEWLINE MethodBody
+    private Optional<ConstructorNode> parseConstructor() throws SyntaxErrorException {
+        ConstructorNode constructorNode = new ConstructorNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.CONSTRUCT).isEmpty())
+        {
+            return Optional.empty();
+        }
+
+        if(!tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Left Paren", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        if(!tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        {
+            do
+            {
+                Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
+                if(variableDeclarationNode.isPresent())
+                {
+                    constructorNode.parameters.add(variableDeclarationNode.get());
+                }
+            }while(!tokens.matchAndRemove(Token.TokenTypes.COMMA).isEmpty());
+
+        }
+        RequireNewLine();
+
+        //parse method body
+        //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
+
+        return Optional.of(constructorNode);
+    }
+
+    //Member = VariableDeclaration ["accessor:" Statements] ["mutator:" Statements]
+    private Optional<MemberNode> parseMember() throws SyntaxErrorException {
+        MemberNode memberNode = new MemberNode();
+
+        Optional<VariableDeclarationNode> declaration = parseVariable();
+        if(declaration.isPresent())
+        {
+            memberNode.declaration = declaration.get();
+        }
+        else
+        {
+            throw new SyntaxErrorException("Expected Member", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.ACCESSOR).isPresent())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
+            {
+                throw new SyntaxErrorException("Expected Accessor statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            //Parse statements
+
+
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.MUTATOR).isPresent())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
+            {
+                throw new SyntaxErrorException("Expected Mutator statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            //Parse statements
+        }
+
+
+        return Optional.of(memberNode);
+    }
 
     /*
     Looks at the current token, if there is supposed to be a newline there and there is not it will return a error,
