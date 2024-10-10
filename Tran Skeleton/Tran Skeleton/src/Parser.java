@@ -250,6 +250,45 @@ public class Parser {
 
         //Parse Method body for statments and local var declarations
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        //Statement = If | Loop | MethodCall | Assignment
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
+        {
+            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            {
+                Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
+                if(variableDeclarationNode.isPresent()) {
+                    methodNode.locals.add(variableDeclarationNode.get());
+                    RequireNewLine();
+                }
+
+            }
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+            {
+                Optional<IfNode> ifNode = parseIfNode();
+                if(ifNode.isPresent())
+                {
+                    methodNode.statements.add(ifNode.get());
+                }
+            }
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP)
+            {
+                Optional<LoopNode> loopNode = parseLoopNode();
+                if(loopNode.isPresent())
+                {
+                    methodNode.statements.add(loopNode.get());
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
 
         return Optional.of(methodNode);
     }
@@ -262,7 +301,7 @@ public class Parser {
             return Optional.empty();
         }
 
-        if(!tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
+        if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
         {
             throw new SyntaxErrorException("Expected Left Paren", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
@@ -279,10 +318,55 @@ public class Parser {
             }while(!tokens.matchAndRemove(Token.TokenTypes.COMMA).isEmpty());
 
         }
+
+        if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected RParen", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
         RequireNewLine();
 
         //parse method body
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        //Statement = If | Loop | MethodCall | Assignment
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
+        {
+            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            {
+                Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
+                if(variableDeclarationNode.isPresent()) {
+                    constructorNode.locals.add(variableDeclarationNode.get());
+                    RequireNewLine();
+                }
+
+            }
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+            {
+                Optional<IfNode> ifNode = parseIfNode();
+                if(ifNode.isPresent())
+                {
+                    constructorNode.statements.add(ifNode.get());
+                }
+            }
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP)
+            {
+                Optional<LoopNode> loopNode = parseLoopNode();
+                if(loopNode.isPresent())
+                {
+                    constructorNode.statements.add(loopNode.get());
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
 
         return Optional.of(constructorNode);
     }
@@ -300,12 +384,14 @@ public class Parser {
         {
             throw new SyntaxErrorException("Expected Member", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+
         if(tokens.matchAndRemove(Token.TokenTypes.ACCESSOR).isPresent())
         {
             if(tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty())
             {
                 throw new SyntaxErrorException("Expected Accessor statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
             }
+            //Statements = INDENT {Statement NEWLINE } DEDENT
             //Parse statements
 
 
@@ -316,12 +402,27 @@ public class Parser {
             {
                 throw new SyntaxErrorException("Expected Mutator statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
             }
+            //Statements = INDENT {Statement NEWLINE } DEDENT
             //Parse statements
+
         }
 
 
         return Optional.of(memberNode);
+    } //BROKEN
+
+    //If = "if" BoolExp NEWLINE Statements ["else" NEWLINE (Statement | Statements)]
+    private Optional<IfNode> parseIfNode() throws SyntaxErrorException {
+        IfNode ifNode = new IfNode();
+        return Optional.of(ifNode);
+    } //BROKEN
+
+    //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements //BROKEN
+    private Optional<LoopNode> parseLoopNode() throws SyntaxErrorException {
+        LoopNode loopNode = new LoopNode();
+        return Optional.of(loopNode);
     }
+
 
     /*
     Looks at the current token, if there is supposed to be a newline there and there is not it will return a error,
