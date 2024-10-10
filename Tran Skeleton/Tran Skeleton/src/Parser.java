@@ -380,6 +380,9 @@ public class Parser {
             t=value
 
      */
+    /*
+    **DEFINITELY problems in this function**
+     */
     private Optional<MemberNode> parseMember() throws SyntaxErrorException {
         MemberNode memberNode = new MemberNode();
 
@@ -495,12 +498,20 @@ public class Parser {
     //If = "if" BoolExp NEWLINE Statements ["else" NEWLINE (Statement | Statements)]
     private Optional<IfNode> parseIfNode() throws SyntaxErrorException {
         IfNode ifNode = new IfNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.IF).isEmpty())
+        {
+            return Optional.empty();
+        }
         return Optional.of(ifNode);
     } //BROKEN
 
     //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements //BROKEN
     private Optional<LoopNode> parseLoopNode() throws SyntaxErrorException {
         LoopNode loopNode = new LoopNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isEmpty())
+        {
+            return Optional.empty();
+        }
         return Optional.of(loopNode);
     }
 

@@ -540,27 +540,27 @@ class TranExample implements someName
         p.Tran();
         var clazz = tran.Classes.getFirst();
     }
-//    @Test
-//    public void testLoop() throws Exception {
-//        Lexer L = new Lexer("class Tran\n" +
-//                "\thelloWorld()\n" +
-//                "\t\tloop\n" );
-//        var rev= L.Lex();
-//        TranNode t= new TranNode();
-//        Parser p= new Parser(t,rev);
-//        p.Tran();
-//    }
-//
-//    @Test
-//    public void testClassIf() throws Exception {
-//        Lexer L = new Lexer("class Tran\n" +
-//                "\thelloWorld()\n" +
-//                "\t\tif\n" );
-//        var rev= L.Lex();
-//        TranNode t= new TranNode();
-//        Parser p= new Parser(t,rev);
-//        p.Tran();
-//    }
+    @Test
+    public void testLoop() throws Exception {
+        Lexer L = new Lexer("class Tran\n" +
+                "\thelloWorld()\n" +
+                "\t\tloop\n" );
+        var rev= L.Lex();
+        TranNode t= new TranNode();
+        Parser p= new Parser(t,rev);
+        p.Tran();
+    }
+
+    @Test
+    public void testClassIf() throws Exception {
+        Lexer L = new Lexer("class Tran\n" +
+                "\thelloWorld()\n" +
+                "\t\tif\n" );
+        var rev= L.Lex();
+        TranNode t= new TranNode();
+        Parser p= new Parser(t,rev);
+        p.Tran();
+    }
 
 
 
