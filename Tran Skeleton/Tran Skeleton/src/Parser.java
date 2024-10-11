@@ -306,7 +306,7 @@ public class Parser {
             throw new SyntaxErrorException("Expected Left Paren", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        if(!tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
         {
             do
             {
@@ -334,6 +334,7 @@ public class Parser {
         }
 
         //Statement = If | Loop | MethodCall | Assignment
+        // Or method declarations
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
         {
             if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
@@ -341,7 +342,9 @@ public class Parser {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
                 if(variableDeclarationNode.isPresent()) {
                     constructorNode.locals.add(variableDeclarationNode.get());
-                    RequireNewLine();
+
+                        RequireNewLine();
+
                 }
 
             }
@@ -353,7 +356,7 @@ public class Parser {
                     constructorNode.statements.add(ifNode.get());
                 }
             }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP)
+            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
             {
                 Optional<LoopNode> loopNode = parseLoopNode();
                 if(loopNode.isPresent())
@@ -410,6 +413,8 @@ public class Parser {
                     throw new SyntaxErrorException("Expected Accessor statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
 
+                RequireNewLine();
+
                 //Statements = INDENT {Statement NEWLINE } DEDENT
                 //Parse statements
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
@@ -417,7 +422,7 @@ public class Parser {
                 }
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
                     {
                         Optional<IfNode> ifNode = parseIfNode();
                         if(ifNode.isPresent())
@@ -426,7 +431,7 @@ public class Parser {
                             RequireNewLine();
                         }
                     }
-                    else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent())
+                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
                     {
                         Optional<LoopNode> loopNode = parseLoopNode();
                         if(loopNode.isPresent())
@@ -452,6 +457,9 @@ public class Parser {
                 if (tokens.matchAndRemove(Token.TokenTypes.COLON).isEmpty()) {
                     throw new SyntaxErrorException("Expected Mutator statements", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
+
+                RequireNewLine();
+
                 //Statements = INDENT {Statement NEWLINE } DEDENT
                 //Parse statements
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
@@ -459,7 +467,7 @@ public class Parser {
                 }
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
                     {
                         Optional<IfNode> ifNode = parseIfNode();
                         if(ifNode.isPresent())
@@ -468,7 +476,7 @@ public class Parser {
                             RequireNewLine();
                         }
                     }
-                    else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent())
+                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
                     {
                         Optional<LoopNode> loopNode = parseLoopNode();
                         if(loopNode.isPresent())
@@ -502,20 +510,203 @@ public class Parser {
         {
             return Optional.empty();
         }
+
+        /*
+        temporally using a null node for the boolexp
+         */
+        BooleanOpNode boolexp = new BooleanOpNode();
+        boolexp = null;
+        ifNode.condition = boolexp;
+
+        if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Newline", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        //parse statements
+
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+            throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            {
+                Optional<IfNode> ifNode_1 = parseIfNode();
+                if(ifNode_1.isPresent())
+                {
+                    ifNode.statements.add(ifNode_1.get());
+                    RequireNewLine();
+                }
+            }
+            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
+            {
+                Optional<LoopNode> loopNode = parseLoopNode();
+                if(loopNode.isPresent())
+                {
+                    ifNode.statements.add(loopNode.get());
+                    RequireNewLine();
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        if(tokens.peek(0).get().getType() == Token.TokenTypes.ELSE)
+        {
+            Optional<ElseNode> elseNode = parseElseNode();
+            if(elseNode.isPresent())
+            {
+                ifNode.elseStatement = Optional.of(elseNode.get());
+            }
+        }
+
         return Optional.of(ifNode);
     } //BROKEN
 
     //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements //BROKEN
     private Optional<LoopNode> parseLoopNode() throws SyntaxErrorException {
         LoopNode loopNode = new LoopNode();
+        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+        if(variableReferenceNode.isPresent())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isEmpty())
+            {
+                throw new SyntaxErrorException("Expected Assign for variable", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            loopNode.assignment = Optional.of(variableReferenceNode.get());
+        }
+
         if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isEmpty())
         {
             return Optional.empty();
         }
+
+        if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        BooleanOpNode boolexp = new BooleanOpNode();
+        boolexp = null;
+        loopNode.expression = boolexp;
+
+        if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected RPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Newline", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        //parse statements
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+            throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            {
+                Optional<IfNode> ifNode = parseIfNode();
+                if(ifNode.isPresent())
+                {
+                    loopNode.statements.add(ifNode.get());
+                    RequireNewLine();
+                }
+            }
+            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
+            {
+                Optional<LoopNode> loopNode_1 = parseLoopNode();
+                if(loopNode_1.isPresent())
+                {
+                    loopNode.statements.add(loopNode_1.get());
+                    RequireNewLine();
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+
         return Optional.of(loopNode);
     }
 
+    private Optional<VariableReferenceNode> parseVariableReference() throws SyntaxErrorException {
+        VariableReferenceNode variableReferenceNode = new VariableReferenceNode();
+        String name = tokens.peek(0).get().getValue();
+        if(tokens.matchAndRemove(Token.TokenTypes.WORD).isEmpty())
+        {
+            return Optional.empty();
+        }
+        variableReferenceNode.name = name;
+        return Optional.of(variableReferenceNode);
+    }
 
+    private Optional<ElseNode> parseElseNode() throws SyntaxErrorException
+    {
+        ElseNode elseNode = new ElseNode();
+        if(tokens.matchAndRemove(Token.TokenTypes.ELSE).isEmpty())
+        {
+            return Optional.empty();
+        }
+
+        if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected Newline", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        //parse statements
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+            throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            {
+                Optional<IfNode> ifNode = parseIfNode();
+                if(ifNode.isPresent())
+                {
+                    elseNode.statements.add(ifNode.get());
+                    RequireNewLine();
+                }
+            }
+            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
+            {
+                Optional<LoopNode> loopNode = parseLoopNode();
+                if(loopNode.isPresent())
+                {
+                    elseNode.statements.add(loopNode.get());
+                    RequireNewLine();
+                }
+            }
+            else
+            {
+                RequireNewLine();
+            }
+
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        {
+            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+        }
+
+        return Optional.of(elseNode);
+    }
     /*
     Looks at the current token, if there is supposed to be a newline there and there is not it will return a error,
     if there is a newline there nothing will happen and the parser will continue to parse

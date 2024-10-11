@@ -496,6 +496,7 @@ class TranExample implements someName
         Assertions.assertEquals(2, tran.Classes.getFirst().methods.getFirst().locals.size());
         Assertions.assertEquals("x", tran.Classes.getFirst().methods.getFirst().locals.get(0).name);
         Assertions.assertEquals("y", tran.Classes.getFirst().methods.getFirst().locals.get(1).name);
+        Assertions.assertEquals("start", tran.Classes.getFirst().methods.getFirst().name); //Added test testing for name
     }
 
     /*
@@ -510,6 +511,7 @@ class TranExample implements someName
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
                 "\t\taccessor:"
+
         );
         var LT= L.Lex();
         System.out.println(LT);
@@ -531,6 +533,7 @@ class TranExample implements someName
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
                 "\t\tmutator:"
+
         );
         var LT= L.Lex();
         System.out.println(LT);LT.add(new Token(Token.TokenTypes.DEDENT, 9, 18));
@@ -561,6 +564,152 @@ class TranExample implements someName
         Parser p= new Parser(t,rev);
         p.Tran();
     }
+
+
+
+    //Custom Parser 2 tests
+    @Test
+    public void testConstructorParsing_extra() throws Exception {
+        var tran = new TranNode();
+        var list = List.of(
+                new Token(Token.TokenTypes.CLASS, 1, 1),
+                new Token(Token.TokenTypes.WORD, 1, 2, "Tran"),
+                new Token(Token.TokenTypes.NEWLINE, 1, 3),
+                new Token(Token.TokenTypes.INDENT, 2, 1),
+                new Token(Token.TokenTypes.WORD, 2, 2, "number"),
+                new Token(Token.TokenTypes.WORD, 2, 3, "x"),
+                new Token(Token.TokenTypes.NEWLINE, 2, 4),
+                new Token(Token.TokenTypes.WORD, 4, 2, "string"),
+                new Token(Token.TokenTypes.WORD, 4, 3, "y"),
+                new Token(Token.TokenTypes.NEWLINE, 4, 3),
+                new Token(Token.TokenTypes.CONSTRUCT, 5, 2),
+                new Token(Token.TokenTypes.LPAREN, 5, 3),
+                //Add parameters
+                new Token(Token.TokenTypes.WORD, 3, 13, "number"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "s"),
+                new Token(Token.TokenTypes.COMMA, 3, 9),
+                new Token(Token.TokenTypes.WORD, 3, 13, "String"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "salty"),
+                new Token(Token.TokenTypes.RPAREN, 5, 4),
+                new Token(Token.TokenTypes.NEWLINE, 5, 5),
+                new Token(Token.TokenTypes.INDENT, 2, 1),
+                //Add Variable declarations
+                new Token(Token.TokenTypes.WORD, 3, 13, "number"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "s"),
+                new Token(Token.TokenTypes.NEWLINE, 5, 5),
+                new Token(Token.TokenTypes.NEWLINE, 5, 5),
+                new Token(Token.TokenTypes.NEWLINE, 5, 5),
+                new Token(Token.TokenTypes.WORD, 3, 13, "number"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "x"),
+                new Token(Token.TokenTypes.NEWLINE, 5, 5),
+                new Token(Token.TokenTypes.DEDENT, 2, 1),
+                new Token(Token.TokenTypes.DEDENT, 8, 1)
+
+        );
+        var tokens = new LinkedList<>(list);//converting list to linked list so the token manager can handle this
+        var p = new Parser(tran, tokens);
+        p.Tran();
+        Assertions.assertEquals(1, tran.Classes.getFirst().constructors.size());
+        Assertions.assertEquals(2, tran.Classes.getFirst().constructors.getFirst().parameters.size()); //Asserting that the number of parameters should be 2 in the constructor
+        Assertions.assertEquals(0, tran.Classes.getFirst().constructors.getFirst().statements.size());//
+        Assertions.assertEquals(2, tran.Classes.getFirst().constructors.getFirst().locals.size()); //Asserting that the number of parameters should be 2 in the constructor
+
+    }
+
+    @Test
+    public void testMembers_and_methoddeclaration_extra() throws Exception {
+        var tran = new TranNode();
+        //Ignore the line and column number here, all you will be using the line number and columnNumber in parser is for printing syntax error in Tran code lexed by you.
+        List<Token> list = List.of(
+                new Token(Token.TokenTypes.INTERFACE, 1, 9),
+                new Token(Token.TokenTypes.WORD, 1, 18, "someName"),
+                new Token(Token.TokenTypes.NEWLINE, 2, 0),
+                new Token(Token.TokenTypes.INDENT, 2, 4),
+                new Token(Token.TokenTypes.WORD, 2, 10, "square"),
+                new Token(Token.TokenTypes.LPAREN, 2, 11),
+                new Token(Token.TokenTypes.RPAREN, 2, 12),
+                new Token(Token.TokenTypes.COLON, 2, 14),
+                new Token(Token.TokenTypes.WORD, 2, 21, "number"),
+                new Token(Token.TokenTypes.WORD, 2, 23, "s"),
+                new Token(Token.TokenTypes.NEWLINE, 3, 0),
+                new Token(Token.TokenTypes.DEDENT, 3, 0),
+                new Token(Token.TokenTypes.CLASS, 3, 5),
+                new Token(Token.TokenTypes.WORD, 3, 17, "TranExample"),
+                new Token(Token.TokenTypes.IMPLEMENTS, 3, 28),
+                new Token(Token.TokenTypes.WORD, 3, 37, "someName"),
+                new Token(Token.TokenTypes.NEWLINE, 4, 0),
+                new Token(Token.TokenTypes.INDENT, 4, 4),
+                new Token(Token.TokenTypes.WORD, 4, 10, "number"),
+                new Token(Token.TokenTypes.WORD, 4, 12, "m"),
+                new Token(Token.TokenTypes.NEWLINE, 5, 0),
+                new Token(Token.TokenTypes.WORD, 4, 10, "string"),
+                new Token(Token.TokenTypes.WORD, 4, 12, "str"),
+                new Token(Token.TokenTypes.NEWLINE, 5, 0),
+                new Token(Token.TokenTypes.PRIVATE, 4, 12, "private"),
+                new Token(Token.TokenTypes.WORD, 5, 9, "start"),
+                new Token(Token.TokenTypes.LPAREN, 5, 10),
+                //add parameters
+                new Token(Token.TokenTypes.WORD, 3, 13, "number"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "s"),
+                new Token(Token.TokenTypes.COMMA, 3, 9),
+                new Token(Token.TokenTypes.WORD, 3, 13, "String"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "salty"),
+                new Token(Token.TokenTypes.RPAREN, 5, 11),
+                //add returns
+                new Token(Token.TokenTypes.COLON, 5, 0),
+                new Token(Token.TokenTypes.WORD, 3, 13, "number"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "s"),
+                new Token(Token.TokenTypes.COMMA, 3, 9),
+                new Token(Token.TokenTypes.WORD, 3, 13, "String"),
+                new Token(Token.TokenTypes.WORD, 3, 20, "salty"),
+                new Token(Token.TokenTypes.NEWLINE, 6, 0),
+                new Token(Token.TokenTypes.INDENT, 6, 8),
+                new Token(Token.TokenTypes.WORD, 6, 14, "number"),
+                new Token(Token.TokenTypes.WORD, 6, 16, "x"),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0), //Adding new newlines just for testing
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.WORD, 7, 14, "number"),
+                new Token(Token.TokenTypes.WORD, 7, 16, "y"),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.WORD, 6, 14, "number"),
+                new Token(Token.TokenTypes.WORD, 6, 16, "x"),
+                new Token(Token.TokenTypes.NEWLINE, 8, 0), //Adding extra newlines just for testing
+                new Token(Token.TokenTypes.WORD, 6, 14, "number"),
+                new Token(Token.TokenTypes.WORD, 7, 16, "y"),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.NEWLINE, 7, 0),
+                new Token(Token.TokenTypes.DEDENT, 8, 4),
+                new Token(Token.TokenTypes.DEDENT, 8, 4)
+
+        );
+
+        var tokens = new LinkedList<>(list);//converting list to linked list so the token manager can handle this
+        var p = new Parser(tran, tokens);
+        p.Tran();
+        var clazz = tran.Classes.getFirst();
+        Assertions.assertEquals("s", tran.Interfaces.get(0).methods.getFirst().returns.get(0).name);
+        Assertions.assertEquals("someName", clazz.interfaces.getFirst());
+        Assertions.assertEquals(2, tran.Classes.getFirst().members.size());
+        Assertions.assertEquals("m", tran.Classes.getFirst().members.getFirst().declaration.name);
+        Assertions.assertEquals(4, tran.Classes.getFirst().methods.getFirst().locals.size());
+        Assertions.assertEquals("x", tran.Classes.getFirst().methods.getFirst().locals.get(0).name);
+        Assertions.assertEquals("y", tran.Classes.getFirst().methods.getFirst().locals.get(1).name);
+        Assertions.assertEquals("start", tran.Classes.getFirst().methods.getFirst().name); //Added test testing for name
+        Assertions.assertEquals("s", tran.Classes.getFirst().methods.getFirst().parameters.get(0).name);
+        Assertions.assertEquals("salty", tran.Classes.getFirst().methods.getFirst().parameters.get(1).name);
+        Assertions.assertEquals("s", tran.Classes.getFirst().methods.getFirst().returns.get(0).name);
+        Assertions.assertEquals("salty", tran.Classes.getFirst().methods.getFirst().returns.get(1).name);
+        Assertions.assertEquals(true, tran.Classes.getFirst().methods.getFirst().isPrivate);
+    }
+
+
+
+
+
+
 
 
 
