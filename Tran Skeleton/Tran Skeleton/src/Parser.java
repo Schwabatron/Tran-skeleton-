@@ -707,6 +707,61 @@ public class Parser {
 
         return Optional.of(elseNode);
     }
+
+
+    private Optional<ExpressionNode> Expression() throws SyntaxErrorException {
+        return Optional.of(parseVariableReference().get());
+    }
+
+    /*
+    temporarily returning a empty for Expression()
+     */
+    private Optional<MethodCallExpressionNode> MethodCallExpression(){
+        return Optional.empty();
+    }
+
+
+    /*
+    Done for first draft
+     */
+    private Optional<StatementNode> disambiguate() throws SyntaxErrorException {
+        Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
+        if(methodCallExpression.isPresent())
+        {
+            return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
+        }
+
+
+       Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+        if(variableReferenceNode.isPresent())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isPresent())
+            {
+                Optional<ExpressionNode> expressionNode = Expression();
+                if(expressionNode.isPresent())
+                {
+                    Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
+                    assignmentNode.get().target = variableReferenceNode.get();
+                    assignmentNode.get().expression = expressionNode.get();
+                    return Optional.of(assignmentNode.get());
+                }
+                else
+                {
+                    return Optional.empty();
+                }
+            }
+        }
+        else
+        {
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+
+
+
+
     /*
     Looks at the current token, if there is supposed to be a newline there and there is not it will return a error,
     if there is a newline there nothing will happen and the parser will continue to parse
