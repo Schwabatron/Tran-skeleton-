@@ -781,9 +781,44 @@ public class Parser {
         Optional<ExpressionNode> expressionNode = Expression();
         if(expressionNode.isPresent())
         {
-            compareNode.get().left = expressionNode.get();
+            compareNode.get().left = expressionNode.get(); //If the expression is present then we will check for the left side
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.EQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.eq;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.NOTEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.ne;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.LESSTHANEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.le;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.GREATERTHANEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.ge;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.LESSTHAN).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.lt;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.GREATERTHAN).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.gt;
         }
 
+        if (compareNode.get().op != null) {
+            Optional<ExpressionNode> rightExpression = Expression();  // Parse RHS expression
+            if (rightExpression.isPresent()) {
+                // Create and return the CompareNode
+                compareNode.get().right = rightExpression.get();
+                return Optional.of(compareNode.get());
+            } else {
+                // If we have a left expression and operator but no right expression, throw an error
+                throw new SyntaxErrorException("error: expected a boolean op and a right side", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+        }
 
         //step 3 look for a variable reference
         Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
