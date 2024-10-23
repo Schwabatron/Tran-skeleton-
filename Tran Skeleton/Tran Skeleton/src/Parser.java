@@ -758,6 +758,43 @@ public class Parser {
         return Optional.empty();
     }
 
+   //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
+    private Optional<BooleanOpNode> BoolexpTerm() throws SyntaxErrorException {
+        return Optional.empty();
+    }
+
+
+//    BoolExpFactor = MethodCallExpression | (Expression ( "==" | "!=" | "<=" | ">=" | ">" | "<" )
+//    Expression) | VariableReference
+    private Optional<ExpressionNode> BoolexpFactor() throws SyntaxErrorException {
+        //CompareNode compareNode = new CompareNode();
+        //Step 1 look for a methodCallExpression.
+        Optional<MethodCallExpressionNode> methodCall = MethodCallExpression();
+        if(methodCall.isPresent())
+        {
+            return Optional.of(methodCall.get());
+        }
+
+
+        //Step 2 look for a comparison expression
+        Optional<CompareNode> compareNode = Optional.of(new CompareNode());
+        Optional<ExpressionNode> expressionNode = Expression();
+        if(expressionNode.isPresent())
+        {
+            compareNode.get().left = expressionNode.get();
+        }
+
+
+        //step 3 look for a variable reference
+        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+        if(variableReferenceNode.isPresent())
+        {
+            return Optional.of(variableReferenceNode.get());
+        }
+
+        return Optional.empty();
+    }
+
 
 
 
