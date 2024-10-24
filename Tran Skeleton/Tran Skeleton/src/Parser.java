@@ -525,7 +525,7 @@ public class Parser {
         /*
         temporally using a null node for the boolexp
          */
-        Optional<BooleanOpNode> boolexp = BoolexpTerm();
+        var boolexp = BoolexpTerm();
         if(boolexp.isPresent())
         {
             ifNode.condition = boolexp.get();
@@ -595,6 +595,11 @@ public class Parser {
             {
                 ifNode.elseStatement = Optional.of(elseNode.get());
             }
+
+        }
+        else
+        {
+            ifNode.elseStatement = Optional.empty();
         }
 
         return Optional.of(ifNode);
@@ -623,7 +628,7 @@ public class Parser {
             throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        Optional<BooleanOpNode> boolexp = BoolexpTerm();
+        var boolexp = BoolexpTerm();
         if(boolexp.isPresent())
         {
             loopNode.expression = boolexp.get();
@@ -792,21 +797,19 @@ public class Parser {
     }
 
    //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
-   private Optional<BooleanOpNode> BoolexpTerm() throws SyntaxErrorException {
-       // Step 1: Parse the base case (a BoolExpFactor)
+   private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+
        Optional<ExpressionNode> leftFactor = BoolexpFactor();
        if (leftFactor.isEmpty()) {
-           return Optional.empty();  // No factor found, return empty
+           return Optional.empty();
        }
 
 
-
-       // Step 2: Check if there is an "and" or "or" to apply recursion
        if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
 
            // Create a new BooleanOpNode for the operation
            BooleanOpNode booleanOpNode = new BooleanOpNode();
-           booleanOpNode.left = leftFactor.get();  // Set the left side
+           booleanOpNode.left = leftFactor.get();
 
            // Parse the operator (and/or)
            if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
@@ -815,24 +818,15 @@ public class Parser {
                booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
            }
 
-           // Step 3: Recursive call to parse the right-hand side (next BoolExpTerm)
-           Optional<BooleanOpNode> rightNode = BoolexpTerm();  // Recursively parse the next BoolExpTerm
+           var rightNode = BoolexpTerm();
            if (rightNode.isEmpty()) {
                throw new SyntaxErrorException("Expected expression after boolean operation",
                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
            }
-
-           // Set the right-hand side of the BooleanOpNode
            booleanOpNode.right = rightNode.get();
-
-           // Return the constructed BooleanOpNode
            return Optional.of(booleanOpNode);
        }
-
-
-       BooleanOpNode singleNode = new BooleanOpNode();
-       singleNode.left = leftFactor.get();// Set the left factor
-       return Optional.of(singleNode);
+       return leftFactor;
    }
 
 
