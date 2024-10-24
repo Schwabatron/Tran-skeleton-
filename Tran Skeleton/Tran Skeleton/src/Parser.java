@@ -1,4 +1,5 @@
 import AST.*;
+import java.util.ArrayList;
 
 import java.util.List;
 import java.util.Optional;
@@ -181,8 +182,9 @@ public class Parser {
         }
 
         //Logic to get all the Constructors, method declarations, and members before the dedent
-        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty() && !tokens.done())
         {
+
             //Constructor = "construct" "(" VariableDeclarations ")" NEWLINE MethodBody
             if(tokens.peek(0).get().getType() == Token.TokenTypes.CONSTRUCT)
             {
@@ -258,7 +260,7 @@ public class Parser {
         //Statement = If | Loop | MethodCall | Assignment
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
         {
-            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
                 if(variableDeclarationNode.isPresent()) {
@@ -285,7 +287,16 @@ public class Parser {
             }
             else
             {
-                RequireNewLine();
+                Optional<StatementNode> disambiguate = disambiguate();
+                if(disambiguate.isPresent())
+                {
+                    methodNode.statements.add(disambiguate.get());
+                }
+                else
+                {
+                    RequireNewLine();
+                }
+                //RequireNewLine();
             }
 
         }
@@ -514,9 +525,13 @@ public class Parser {
         /*
         temporally using a null node for the boolexp
          */
-        BooleanOpNode boolexp = new BooleanOpNode();
-        boolexp = null;
-        ifNode.condition = boolexp;
+        Optional<BooleanOpNode> boolexp = BoolexpTerm();
+        if(boolexp.isPresent())
+        {
+            ifNode.condition = boolexp.get();
+        }
+        //boolexp = null;
+       //ifNode.condition = boolexp;
 
         if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
         {
@@ -527,31 +542,46 @@ public class Parser {
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
             throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+        List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
+
             if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
             {
                 Optional<IfNode> ifNode_1 = parseIfNode();
                 if(ifNode_1.isPresent())
                 {
-                    ifNode.statements.add(ifNode_1.get());
+                    statements.add(ifNode_1.get());
                     RequireNewLine();
                 }
             }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
+            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() /*|| tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN)*/)
             {
                 Optional<LoopNode> loopNode = parseLoopNode();
                 if(loopNode.isPresent())
                 {
-                    ifNode.statements.add(loopNode.get());
+                    statements.add(loopNode.get());
                     RequireNewLine();
                 }
             }
             else
             {
-                RequireNewLine();
+                Optional<StatementNode> disambiguate = disambiguate();
+                if(disambiguate.isPresent())
+                {
+                    statements.add(disambiguate.get());
+                }
+                else
+                {
+                    RequireNewLine();
+                }
+                //RequireNewLine();
             }
 
+        }
+        if(!statements.isEmpty())
+        {
+            ifNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -593,9 +623,12 @@ public class Parser {
             throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        BooleanOpNode boolexp = new BooleanOpNode();
-        boolexp = null;
-        loopNode.expression = boolexp;
+        Optional<BooleanOpNode> boolexp = BoolexpTerm();
+        if(boolexp.isPresent())
+        {
+            loopNode.expression = boolexp.get();
+        }
+        //loopNode.expression = boolexp;
 
         if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
         {
@@ -759,11 +792,51 @@ public class Parser {
     }
 
    //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
-    private Optional<BooleanOpNode> BoolexpTerm() throws SyntaxErrorException {
-        return Optional.empty();
-    }
+   private Optional<BooleanOpNode> BoolexpTerm() throws SyntaxErrorException {
+       // Step 1: Parse the base case (a BoolExpFactor)
+       Optional<ExpressionNode> leftFactor = BoolexpFactor();
+       if (leftFactor.isEmpty()) {
+           return Optional.empty();  // No factor found, return empty
+       }
 
 
+
+       // Step 2: Check if there is an "and" or "or" to apply recursion
+       if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
+
+           // Create a new BooleanOpNode for the operation
+           BooleanOpNode booleanOpNode = new BooleanOpNode();
+           booleanOpNode.left = leftFactor.get();  // Set the left side
+
+           // Parse the operator (and/or)
+           if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
+               booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
+           } else if (tokens.matchAndRemove(Token.TokenTypes.OR).isPresent()) {
+               booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
+           }
+
+           // Step 3: Recursive call to parse the right-hand side (next BoolExpTerm)
+           Optional<BooleanOpNode> rightNode = BoolexpTerm();  // Recursively parse the next BoolExpTerm
+           if (rightNode.isEmpty()) {
+               throw new SyntaxErrorException("Expected expression after boolean operation",
+                       tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+           }
+
+           // Set the right-hand side of the BooleanOpNode
+           booleanOpNode.right = rightNode.get();
+
+           // Return the constructed BooleanOpNode
+           return Optional.of(booleanOpNode);
+       }
+
+
+       BooleanOpNode singleNode = new BooleanOpNode();
+       singleNode.left = leftFactor.get();// Set the left factor
+       return Optional.of(singleNode);
+   }
+
+
+//First draft done
 //    BoolExpFactor = MethodCallExpression | (Expression ( "==" | "!=" | "<=" | ">=" | ">" | "<" )
 //    Expression) | VariableReference
     private Optional<ExpressionNode> BoolexpFactor() throws SyntaxErrorException {
@@ -778,12 +851,12 @@ public class Parser {
 
         //Step 2 look for a comparison expression
         Optional<CompareNode> compareNode = Optional.of(new CompareNode());
-        Optional<ExpressionNode> expressionNode = Expression();
-        if(expressionNode.isPresent())
+        Optional<ExpressionNode> expressionNodeLeft = Expression();
+        if(expressionNodeLeft.isPresent())
         {
-            compareNode.get().left = expressionNode.get(); //If the expression is present then we will check for the left side
+            compareNode.get().left = expressionNodeLeft.get(); //If the expression is present then we will check for the left side
         }
-        else if(tokens.matchAndRemove(Token.TokenTypes.EQUAL).isPresent())
+        if(tokens.matchAndRemove(Token.TokenTypes.EQUAL).isPresent())
         {
             compareNode.get().op = CompareNode.CompareOperations.eq;
         }
@@ -829,9 +902,6 @@ public class Parser {
 
         return Optional.empty();
     }
-
-
-
 
 
     /*
