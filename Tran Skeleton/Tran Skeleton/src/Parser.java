@@ -716,40 +716,126 @@ public class Parser {
     }
 
    //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
-   private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+//   private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+//
+//       Optional<ExpressionNode> leftFactor = BoolexpFactor();
+//       if (leftFactor.isEmpty()) {
+//           return Optional.empty();
+//       }
+//
+//
+//       if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
+//
+//           // Create a new BooleanOpNode for the operation
+//           BooleanOpNode booleanOpNode = new BooleanOpNode();
+//           booleanOpNode.left = leftFactor.get();
+//
+//           // Parse the operator (and/or)
+//           if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
+//               booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
+//           } else if (tokens.matchAndRemove(Token.TokenTypes.OR).isPresent()) {
+//               booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
+//           }
+//
+//           var rightNode = BoolexpTerm();
+//           if (rightNode.isEmpty()) {
+//               throw new SyntaxErrorException("Expected expression after boolean operation",
+//                       tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//           }
+//           booleanOpNode.right = rightNode.get();
+//           return Optional.of(booleanOpNode);
+//       }
+//       return leftFactor;
+//   }
 
-       Optional<ExpressionNode> leftFactor = BoolexpFactor();
-       if (leftFactor.isEmpty()) {
-           return Optional.empty();
-       }
+
+    private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+        Optional<ExpressionNode> left = BoolexpAndTerm();
+        if (left.isEmpty()) {
+            return Optional.empty();
+        }
+
+        while (tokens.peek(0).get().getType() == Token.TokenTypes.OR) {
+            tokens.matchAndRemove(Token.TokenTypes.OR);
+            Optional<ExpressionNode> right = BoolexpAndTerm();
+            if (right.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'or'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+
+            BooleanOpNode booleanOpNode = new BooleanOpNode();
+            booleanOpNode.left = left.get();
+            booleanOpNode.right = right.get();
+            booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
+            left = Optional.of(booleanOpNode);
+        }
+        return left;
+    }
+
+    private Optional<ExpressionNode> BoolexpAndTerm() throws SyntaxErrorException {
+        Optional<ExpressionNode> left = BoolexpNotTerm();
+        if (left.isEmpty()) {
+            return Optional.empty();
+        }
+
+        while (tokens.peek(0).isPresent() && tokens.peek(0).get().getType() == Token.TokenTypes.AND) {
+            tokens.matchAndRemove(Token.TokenTypes.AND);
+            Optional<ExpressionNode> right = BoolexpNotTerm();
+            if (right.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'and'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            BooleanOpNode booleanOpNode = new BooleanOpNode();
+            booleanOpNode.left = left.get();
+            booleanOpNode.right = right.get();
+            booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
+            left = Optional.of(booleanOpNode);
+        }
+        return left;
+    }
+
+    private Optional<ExpressionNode> BoolexpNotTerm() throws SyntaxErrorException {
+        if (tokens.matchAndRemove(Token.TokenTypes.NOT).isPresent()) {
+            Optional<ExpressionNode> operand = BoolexpNotTerm();
+            if (operand.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'not'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            NotOpNode notNode = new NotOpNode();
+            notNode.left= operand.get();
+            return Optional.of(notNode);
+        } else {
+            return BoolexpFactor();
+        }
+    }
 
 
-       if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
-
-           // Create a new BooleanOpNode for the operation
-           BooleanOpNode booleanOpNode = new BooleanOpNode();
-           booleanOpNode.left = leftFactor.get();
-
-           // Parse the operator (and/or)
-           if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
-               booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
-           } else if (tokens.matchAndRemove(Token.TokenTypes.OR).isPresent()) {
-               booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
-           }
-
-           var rightNode = BoolexpTerm();
-           if (rightNode.isEmpty()) {
-               throw new SyntaxErrorException("Expected expression after boolean operation",
-                       tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-           }
-           booleanOpNode.right = rightNode.get();
-           return Optional.of(booleanOpNode);
-       }
-       return leftFactor;
-   }
 
 
-//First draft done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //First draft done
 //    BoolExpFactor = MethodCallExpression | (Expression ( "==" | "!=" | "<=" | ">=" | ">" | "<" )
 //    Expression) | VariableReference
     private Optional<ExpressionNode> BoolexpFactor() throws SyntaxErrorException {
@@ -805,15 +891,19 @@ public class Parser {
                 throw new SyntaxErrorException("error: expected a boolean op and a right side", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
             }
         }
-
-        //step 3 look for a variable reference
-        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
-        if(variableReferenceNode.isPresent())
+        else
         {
-            return Optional.of(variableReferenceNode.get());
+            return Optional.of(expressionNodeLeft.get());
         }
 
-        return Optional.empty();
+        //step 3 look for a variable reference
+//        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+//        if(variableReferenceNode.isPresent())
+//        {
+//            return Optional.of(variableReferenceNode.get());
+//        }
+//
+//        return Optional.empty();
     }
 
     Optional<StatementNode> parseStatementNode() throws SyntaxErrorException {
