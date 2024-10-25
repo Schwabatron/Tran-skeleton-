@@ -510,7 +510,8 @@ class TranExample implements someName
                 "    square() : number s\n" +
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
-                "\t\taccessor:"
+                "\t\taccessor:\n"
+                + "\t\t\ta=b"
 
         );
         var LT= L.Lex();
@@ -532,11 +533,12 @@ class TranExample implements someName
                 "    square() : number s\n" +
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
-                "\t\tmutator:"
+                "\t\tmutator:\n"
+                +"\t\t\ta=b"
 
         );
         var LT= L.Lex();
-        System.out.println(LT);LT.add(new Token(Token.TokenTypes.DEDENT, 9, 18));
+        //System.out.println(LT);LT.add(new Token(Token.TokenTypes.DEDENT, 9, 18)); for some reason added a ghost dedent
 
         var tokens = new LinkedList<>(LT);//converting list to linked list so the token manager can handle this
         var p = new Parser(tran, LT);

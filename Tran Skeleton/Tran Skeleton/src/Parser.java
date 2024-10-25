@@ -403,18 +403,23 @@ public class Parser {
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
                     throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
+                List<StatementNode> statements = new ArrayList<>();
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
                     Optional<StatementNode> statementNode = parseStatementNode();
                     if(statementNode.isPresent())
                     {
-                        memberNode.accessor.get().add(statementNode.get());
+                        statements.add(statementNode.get());
                     }
                     else
                     {
                         RequireNewLine();
                     }
 
+                }
+                if(!statements.isEmpty())
+                {
+                    memberNode.accessor = Optional.of(statements);
                 }
                 if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
@@ -435,18 +440,23 @@ public class Parser {
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
                     throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
+                List<StatementNode> statements = new ArrayList<>();
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
                     Optional<StatementNode> statementNode = parseStatementNode();
                     if(statementNode.isPresent())
                     {
-                        memberNode.mutator.get().add(statementNode.get());
+                        statements.add(statementNode.get());
                     }
                     else
                     {
                         RequireNewLine();
                     }
 
+                }
+                if(!statements.isEmpty())
+                {
+                    memberNode.mutator = Optional.of(statements);
                 }
                 if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
