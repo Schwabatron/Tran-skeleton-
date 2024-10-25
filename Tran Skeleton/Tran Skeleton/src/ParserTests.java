@@ -510,7 +510,8 @@ class TranExample implements someName
                 "    square() : number s\n" +
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
-                "\t\taccessor:"
+                "\t\taccessor:\n"
+                + "\t\t\ta=b"
 
         );
         var LT= L.Lex();
@@ -532,11 +533,12 @@ class TranExample implements someName
                 "    square() : number s\n" +
                 "class TranExample implements someName\n" +
                 "\tnumber m\n" +
-                "\t\tmutator:"
+                "\t\tmutator:\n"
+                +"\t\t\ta=b"
 
         );
         var LT= L.Lex();
-        System.out.println(LT);LT.add(new Token(Token.TokenTypes.DEDENT, 9, 18));
+        //System.out.println(LT);LT.add(new Token(Token.TokenTypes.DEDENT, 9, 18)); for some reason added a ghost dedent
 
         var tokens = new LinkedList<>(LT);//converting list to linked list so the token manager can handle this
         var p = new Parser(tran, LT);
@@ -547,7 +549,8 @@ class TranExample implements someName
     public void testLoop() throws Exception {
         Lexer L = new Lexer("class Tran\n" +
                 "\thelloWorld()\n" +
-                "\t\tloop\n" );
+                "\t\tloop(a==b)\n" +
+                "\t\t\ta=b" );
         var rev= L.Lex();
         TranNode t= new TranNode();
         Parser p= new Parser(t,rev);
@@ -558,7 +561,8 @@ class TranExample implements someName
     public void testClassIf() throws Exception {
         Lexer L = new Lexer("class Tran\n" +
                 "\thelloWorld()\n" +
-                "\t\tif\n" );
+                "\t\tif c>=d\n" +
+                "\t\t\ta=b");
         var rev= L.Lex();
         TranNode t= new TranNode();
         Parser p= new Parser(t,rev);

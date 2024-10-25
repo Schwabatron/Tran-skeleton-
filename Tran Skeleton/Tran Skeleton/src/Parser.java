@@ -1,4 +1,5 @@
 import AST.*;
+import java.util.ArrayList;
 
 import java.util.List;
 import java.util.Optional;
@@ -181,8 +182,9 @@ public class Parser {
         }
 
         //Logic to get all the Constructors, method declarations, and members before the dedent
-        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty() && !tokens.done())
         {
+
             //Constructor = "construct" "(" VariableDeclarations ")" NEWLINE MethodBody
             if(tokens.peek(0).get().getType() == Token.TokenTypes.CONSTRUCT)
             {
@@ -258,7 +260,7 @@ public class Parser {
         //Statement = If | Loop | MethodCall | Assignment
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
         {
-            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
                 if(variableDeclarationNode.isPresent()) {
@@ -267,25 +269,17 @@ public class Parser {
                 }
 
             }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
-            {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    methodNode.statements.add(ifNode.get());
-                }
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP)
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    methodNode.statements.add(loopNode.get());
-                }
-            }
             else
             {
-                RequireNewLine();
+                Optional<StatementNode> statementNode = parseStatementNode();
+                if(statementNode.isPresent())
+                {
+                    methodNode.statements.add(statementNode.get());
+                }
+                else
+                {
+                    RequireNewLine();
+                }
             }
 
         }
@@ -337,38 +331,27 @@ public class Parser {
         // Or method declarations
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
         {
-            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
                 if(variableDeclarationNode.isPresent()) {
                     constructorNode.locals.add(variableDeclarationNode.get());
-
-                        RequireNewLine();
-
+                    RequireNewLine();
                 }
 
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
-            {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    constructorNode.statements.add(ifNode.get());
-                }
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    constructorNode.statements.add(loopNode.get());
-                }
             }
             else
             {
-                RequireNewLine();
+                Optional<StatementNode> statementNode = parseStatementNode();
+                if(statementNode.isPresent())
+                {
+                    constructorNode.statements.add(statementNode.get());
+                }
+                else
+                {
+                    RequireNewLine();
+                }
             }
-
         }
 
         return Optional.of(constructorNode);
@@ -420,31 +403,23 @@ public class Parser {
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
                     throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
+                List<StatementNode> statements = new ArrayList<>();
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+                    Optional<StatementNode> statementNode = parseStatementNode();
+                    if(statementNode.isPresent())
                     {
-                        Optional<IfNode> ifNode = parseIfNode();
-                        if(ifNode.isPresent())
-                        {
-                            memberNode.accessor.get().add(ifNode.get());
-                            RequireNewLine();
-                        }
-                    }
-                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-                    {
-                        Optional<LoopNode> loopNode = parseLoopNode();
-                        if(loopNode.isPresent())
-                        {
-                            memberNode.accessor.get().add(loopNode.get());
-                            RequireNewLine();
-                        }
+                        statements.add(statementNode.get());
                     }
                     else
                     {
                         RequireNewLine();
                     }
 
+                }
+                if(!statements.isEmpty())
+                {
+                    memberNode.accessor = Optional.of(statements);
                 }
                 if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
@@ -465,31 +440,23 @@ public class Parser {
                 if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
                     throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
                 }
+                List<StatementNode> statements = new ArrayList<>();
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+                    Optional<StatementNode> statementNode = parseStatementNode();
+                    if(statementNode.isPresent())
                     {
-                        Optional<IfNode> ifNode = parseIfNode();
-                        if(ifNode.isPresent())
-                        {
-                            memberNode.mutator.get().add(ifNode.get());
-                            RequireNewLine();
-                        }
-                    }
-                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-                    {
-                        Optional<LoopNode> loopNode = parseLoopNode();
-                        if(loopNode.isPresent())
-                        {
-                            memberNode.mutator.get().add(loopNode.get());
-                            RequireNewLine();
-                        }
+                        statements.add(statementNode.get());
                     }
                     else
                     {
                         RequireNewLine();
                     }
 
+                }
+                if(!statements.isEmpty())
+                {
+                    memberNode.mutator = Optional.of(statements);
                 }
                 if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
@@ -514,9 +481,13 @@ public class Parser {
         /*
         temporally using a null node for the boolexp
          */
-        BooleanOpNode boolexp = new BooleanOpNode();
-        boolexp = null;
-        ifNode.condition = boolexp;
+        var boolexp = BoolexpTerm();
+        if(boolexp.isPresent())
+        {
+            ifNode.condition = boolexp.get();
+        }
+        //boolexp = null;
+       //ifNode.condition = boolexp;
 
         if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
         {
@@ -527,31 +498,22 @@ public class Parser {
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
             throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+        List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode_1 = parseIfNode();
-                if(ifNode_1.isPresent())
-                {
-                    ifNode.statements.add(ifNode_1.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    ifNode.statements.add(loopNode.get());
-                    RequireNewLine();
-                }
+                statements.add(statementNode.get());
             }
             else
             {
                 RequireNewLine();
             }
-
+        }
+        if(!statements.isEmpty())
+        {
+            ifNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -565,6 +527,11 @@ public class Parser {
             {
                 ifNode.elseStatement = Optional.of(elseNode.get());
             }
+
+        }
+        else
+        {
+            ifNode.elseStatement = Optional.empty();
         }
 
         return Optional.of(ifNode);
@@ -593,9 +560,12 @@ public class Parser {
             throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        BooleanOpNode boolexp = new BooleanOpNode();
-        boolexp = null;
-        loopNode.expression = boolexp;
+        var boolexp = BoolexpTerm();
+        if(boolexp.isPresent())
+        {
+            loopNode.expression = boolexp.get();
+        }
+        //loopNode.expression = boolexp;
 
         if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
         {
@@ -611,31 +581,23 @@ public class Parser {
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
             throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+        List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    loopNode.statements.add(ifNode.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode_1 = parseLoopNode();
-                if(loopNode_1.isPresent())
-                {
-                    loopNode.statements.add(loopNode_1.get());
-                    RequireNewLine();
-                }
+                statements.add(statementNode.get());
             }
             else
             {
                 RequireNewLine();
             }
 
+        }
+        if(!statements.isEmpty())
+        {
+            loopNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -676,23 +638,10 @@ public class Parser {
         }
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    elseNode.statements.add(ifNode.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    elseNode.statements.add(loopNode.get());
-                    RequireNewLine();
-                }
+                elseNode.statements.add(statementNode.get());
             }
             else
             {
@@ -707,6 +656,283 @@ public class Parser {
 
         return Optional.of(elseNode);
     }
+
+
+    private Optional<ExpressionNode> Expression() throws SyntaxErrorException {
+        return Optional.of(parseVariableReference().get());
+    }
+
+    /*
+    temporarily returning a empty for Expression()
+     */
+    private Optional<MethodCallExpressionNode> MethodCallExpression(){
+        return Optional.empty();
+    }
+
+
+    /*
+    Done for first draft
+     */
+    private Optional<StatementNode> disambiguate() throws SyntaxErrorException {
+        Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
+        if(methodCallExpression.isPresent())
+        {
+            return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
+        }
+
+
+       Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+        if(variableReferenceNode.isPresent())
+        {
+            if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isPresent())
+            {
+                Optional<ExpressionNode> expressionNode = Expression();
+                if(expressionNode.isPresent())
+                {
+                    Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
+                    assignmentNode.get().target = variableReferenceNode.get();
+                    assignmentNode.get().expression = expressionNode.get();
+                    return Optional.of(assignmentNode.get());
+                }
+                else
+                {
+                    return Optional.empty();
+                }
+            }
+        }
+        else
+        {
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+   //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
+//   private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+//
+//       Optional<ExpressionNode> leftFactor = BoolexpFactor();
+//       if (leftFactor.isEmpty()) {
+//           return Optional.empty();
+//       }
+//
+//
+//       if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
+//
+//           // Create a new BooleanOpNode for the operation
+//           BooleanOpNode booleanOpNode = new BooleanOpNode();
+//           booleanOpNode.left = leftFactor.get();
+//
+//           // Parse the operator (and/or)
+//           if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
+//               booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
+//           } else if (tokens.matchAndRemove(Token.TokenTypes.OR).isPresent()) {
+//               booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
+//           }
+//
+//           var rightNode = BoolexpTerm();
+//           if (rightNode.isEmpty()) {
+//               throw new SyntaxErrorException("Expected expression after boolean operation",
+//                       tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//           }
+//           booleanOpNode.right = rightNode.get();
+//           return Optional.of(booleanOpNode);
+//       }
+//       return leftFactor;
+//   }
+
+    //Took the code above and commented it out, instead calling specific AND OR and NOT terms as separate functions in order to implement an order of precedence ie NOT -> AND -> OR
+    //The method to call at the begging of each function was from the discussion so the highest precedence(NOT) will be at the bottom as the last call
+    private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
+        Optional<ExpressionNode> left = BoolexpAnd(); //Call to and
+        if (left.isEmpty()) {
+            return Optional.empty();
+        }
+
+        while (tokens.peek(0).get().getType() == Token.TokenTypes.OR) {
+            tokens.matchAndRemove(Token.TokenTypes.OR);
+            Optional<ExpressionNode> right = BoolexpAnd();
+            if (right.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'or'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+
+            BooleanOpNode booleanOpNode = new BooleanOpNode();
+            booleanOpNode.left = left.get();
+            booleanOpNode.right = right.get();
+            booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
+            left = Optional.of(booleanOpNode);
+        }
+        return left;
+    }
+
+    private Optional<ExpressionNode> BoolexpAnd() throws SyntaxErrorException {
+        Optional<ExpressionNode> left = BoolexpNot(); //call to not
+        if (left.isEmpty()) {
+            return Optional.empty();
+        }
+
+        while (tokens.peek(0).get().getType() == Token.TokenTypes.AND) {
+            tokens.matchAndRemove(Token.TokenTypes.AND);
+            Optional<ExpressionNode> right = BoolexpNot();
+            if (right.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'and'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            BooleanOpNode booleanOpNode = new BooleanOpNode();
+            booleanOpNode.left = left.get();
+            booleanOpNode.right = right.get();
+            booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
+            left = Optional.of(booleanOpNode);
+        }
+        return left;
+    }
+    //Since not has the highest precedence it will be parsed first
+    private Optional<ExpressionNode> BoolexpNot() throws SyntaxErrorException {
+        if (tokens.matchAndRemove(Token.TokenTypes.NOT).isPresent()) {
+            Optional<ExpressionNode> operand = BoolexpNot(); //If not is found recursively call function again to parse either another not or the factor
+            if (operand.isEmpty()) {
+                throw new SyntaxErrorException("Expected expression after 'not'",
+                        tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+            NotOpNode notNode = new NotOpNode();
+            notNode.left= operand.get();
+            return Optional.of(notNode);
+        } else {
+            return BoolexpFactor();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //First draft done
+//    BoolExpFactor = MethodCallExpression | (Expression ( "==" | "!=" | "<=" | ">=" | ">" | "<" )
+//    Expression) | VariableReference
+    private Optional<ExpressionNode> BoolexpFactor() throws SyntaxErrorException {
+        //CompareNode compareNode = new CompareNode();
+        //Step 1 look for a methodCallExpression.
+        Optional<MethodCallExpressionNode> methodCall = MethodCallExpression();
+        if(methodCall.isPresent())
+        {
+            return Optional.of(methodCall.get());
+        }
+
+
+        //Step 2 look for a comparison expression
+        Optional<CompareNode> compareNode = Optional.of(new CompareNode());
+        Optional<ExpressionNode> expressionNodeLeft = Expression();
+        if(expressionNodeLeft.isPresent())
+        {
+            compareNode.get().left = expressionNodeLeft.get(); //If the expression is present then we will check for the left side
+        }
+        if(tokens.matchAndRemove(Token.TokenTypes.EQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.eq;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.NOTEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.ne;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.LESSTHANEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.le;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.GREATERTHANEQUAL).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.ge;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.LESSTHAN).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.lt;
+        }
+        else if(tokens.matchAndRemove(Token.TokenTypes.GREATERTHAN).isPresent())
+        {
+            compareNode.get().op = CompareNode.CompareOperations.gt;
+        }
+
+        if (compareNode.get().op != null) {
+            Optional<ExpressionNode> rightExpression = Expression();  // Parse RHS expression
+            if (rightExpression.isPresent()) {
+                // Create and return the CompareNode
+                compareNode.get().right = rightExpression.get();
+                return Optional.of(compareNode.get());
+            } else {
+                // If we have a left expression and operator but no right expression, throw an error
+                throw new SyntaxErrorException("error: expected a boolean op and a right side", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+        }
+        else
+        {
+            return Optional.of(expressionNodeLeft.get());
+        }
+
+        //step 3 look for a variable reference
+//        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+//        if(variableReferenceNode.isPresent())
+//        {
+//            return Optional.of(variableReferenceNode.get());
+//        }
+//
+//        return Optional.empty();
+    }
+
+    Optional<StatementNode> parseStatementNode() throws SyntaxErrorException {
+        var peekedToken = tokens.peek(0).get().getType();
+        if(peekedToken == Token.TokenTypes.IF)
+        {
+            Optional<IfNode> ifNode_1 = parseIfNode();
+            if(ifNode_1.isPresent())
+            {
+                return Optional.of(ifNode_1.get());
+                //RequireNewLine();
+            }
+        }
+        else if(peekedToken == Token.TokenTypes.LOOP /*|| tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN)*/)
+        {
+            Optional<LoopNode> loopNode = parseLoopNode();
+            if(loopNode.isPresent())
+            {
+                return Optional.of(loopNode.get());
+                //RequireNewLine();
+            }
+        }
+        else
+        {
+            Optional<StatementNode> disambiguate = disambiguate();
+            if(disambiguate.isPresent())
+            {
+                return Optional.of(disambiguate.get());
+            }
+
+            //RequireNewLine();
+        }
+        return Optional.empty();
+    }
+
+
     /*
     Looks at the current token, if there is supposed to be a newline there and there is not it will return a error,
     if there is a newline there nothing will happen and the parser will continue to parse
