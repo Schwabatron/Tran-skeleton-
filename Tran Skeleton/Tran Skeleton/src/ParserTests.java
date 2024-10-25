@@ -549,7 +549,8 @@ class TranExample implements someName
     public void testLoop() throws Exception {
         Lexer L = new Lexer("class Tran\n" +
                 "\thelloWorld()\n" +
-                "\t\tloop\n" );
+                "\t\tloop(a==b)\n" +
+                "\t\t\ta=b" );
         var rev= L.Lex();
         TranNode t= new TranNode();
         Parser p= new Parser(t,rev);
@@ -560,7 +561,8 @@ class TranExample implements someName
     public void testClassIf() throws Exception {
         Lexer L = new Lexer("class Tran\n" +
                 "\thelloWorld()\n" +
-                "\t\tif\n" );
+                "\t\tif c>=d\n" +
+                "\t\t\ta=b");
         var rev= L.Lex();
         TranNode t= new TranNode();
         Parser p= new Parser(t,rev);

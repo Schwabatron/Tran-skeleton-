@@ -581,31 +581,23 @@ public class Parser {
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
             throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+        List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    loopNode.statements.add(ifNode.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode_1 = parseLoopNode();
-                if(loopNode_1.isPresent())
-                {
-                    loopNode.statements.add(loopNode_1.get());
-                    RequireNewLine();
-                }
+                statements.add(statementNode.get());
             }
             else
             {
                 RequireNewLine();
             }
 
+        }
+        if(!statements.isEmpty())
+        {
+            loopNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -748,16 +740,17 @@ public class Parser {
 //       return leftFactor;
 //   }
 
-
+    //Took the code above and commented it out, instead calling specific AND OR and NOT terms as separate functions in order to implement an order of precedence ie NOT -> AND -> OR
+    //The method to call at the begging of each function was from the discussion so the highest precedence(NOT) will be at the bottom as the last call
     private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
-        Optional<ExpressionNode> left = BoolexpAndTerm();
+        Optional<ExpressionNode> left = BoolexpAnd(); //Call to and
         if (left.isEmpty()) {
             return Optional.empty();
         }
 
         while (tokens.peek(0).get().getType() == Token.TokenTypes.OR) {
             tokens.matchAndRemove(Token.TokenTypes.OR);
-            Optional<ExpressionNode> right = BoolexpAndTerm();
+            Optional<ExpressionNode> right = BoolexpAnd();
             if (right.isEmpty()) {
                 throw new SyntaxErrorException("Expected expression after 'or'",
                         tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
@@ -772,15 +765,15 @@ public class Parser {
         return left;
     }
 
-    private Optional<ExpressionNode> BoolexpAndTerm() throws SyntaxErrorException {
-        Optional<ExpressionNode> left = BoolexpNotTerm();
+    private Optional<ExpressionNode> BoolexpAnd() throws SyntaxErrorException {
+        Optional<ExpressionNode> left = BoolexpNot(); //call to not
         if (left.isEmpty()) {
             return Optional.empty();
         }
 
-        while (tokens.peek(0).isPresent() && tokens.peek(0).get().getType() == Token.TokenTypes.AND) {
+        while (tokens.peek(0).get().getType() == Token.TokenTypes.AND) {
             tokens.matchAndRemove(Token.TokenTypes.AND);
-            Optional<ExpressionNode> right = BoolexpNotTerm();
+            Optional<ExpressionNode> right = BoolexpNot();
             if (right.isEmpty()) {
                 throw new SyntaxErrorException("Expected expression after 'and'",
                         tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
@@ -793,10 +786,10 @@ public class Parser {
         }
         return left;
     }
-
-    private Optional<ExpressionNode> BoolexpNotTerm() throws SyntaxErrorException {
+    //Since not has the highest precedence it will be parsed first
+    private Optional<ExpressionNode> BoolexpNot() throws SyntaxErrorException {
         if (tokens.matchAndRemove(Token.TokenTypes.NOT).isPresent()) {
-            Optional<ExpressionNode> operand = BoolexpNotTerm();
+            Optional<ExpressionNode> operand = BoolexpNot(); //If not is found recursively call function again to parse either another not or the factor
             if (operand.isEmpty()) {
                 throw new SyntaxErrorException("Expected expression after 'not'",
                         tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
