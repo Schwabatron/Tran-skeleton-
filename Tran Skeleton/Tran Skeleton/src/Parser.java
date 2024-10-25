@@ -269,34 +269,17 @@ public class Parser {
                 }
 
             }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
-            {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    methodNode.statements.add(ifNode.get());
-                }
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP)
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    methodNode.statements.add(loopNode.get());
-                }
-            }
             else
             {
-                Optional<StatementNode> disambiguate = disambiguate();
-                if(disambiguate.isPresent())
+                Optional<StatementNode> statementNode = parseStatementNode();
+                if(statementNode.isPresent())
                 {
-                    methodNode.statements.add(disambiguate.get());
+                    methodNode.statements.add(statementNode.get());
                 }
                 else
                 {
                     RequireNewLine();
                 }
-                //RequireNewLine();
             }
 
         }
@@ -348,38 +331,27 @@ public class Parser {
         // Or method declarations
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
         {
-            if(tokens.peek(0).get().getType() == Token.TokenTypes.WORD)
+            if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
                 Optional<VariableDeclarationNode> variableDeclarationNode = parseVariable();
                 if(variableDeclarationNode.isPresent()) {
                     constructorNode.locals.add(variableDeclarationNode.get());
-
-                        RequireNewLine();
-
+                    RequireNewLine();
                 }
 
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
-            {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    constructorNode.statements.add(ifNode.get());
-                }
-            }
-            else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    constructorNode.statements.add(loopNode.get());
-                }
             }
             else
             {
-                RequireNewLine();
+                Optional<StatementNode> statementNode = parseStatementNode();
+                if(statementNode.isPresent())
+                {
+                    constructorNode.statements.add(statementNode.get());
+                }
+                else
+                {
+                    RequireNewLine();
+                }
             }
-
         }
 
         return Optional.of(constructorNode);
@@ -433,23 +405,10 @@ public class Parser {
                 }
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+                    Optional<StatementNode> statementNode = parseStatementNode();
+                    if(statementNode.isPresent())
                     {
-                        Optional<IfNode> ifNode = parseIfNode();
-                        if(ifNode.isPresent())
-                        {
-                            memberNode.accessor.get().add(ifNode.get());
-                            RequireNewLine();
-                        }
-                    }
-                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-                    {
-                        Optional<LoopNode> loopNode = parseLoopNode();
-                        if(loopNode.isPresent())
-                        {
-                            memberNode.accessor.get().add(loopNode.get());
-                            RequireNewLine();
-                        }
+                        memberNode.accessor.get().add(statementNode.get());
                     }
                     else
                     {
@@ -478,23 +437,10 @@ public class Parser {
                 }
                 while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
                 {
-                    if(tokens.peek(0).get().getType() == Token.TokenTypes.IF)
+                    Optional<StatementNode> statementNode = parseStatementNode();
+                    if(statementNode.isPresent())
                     {
-                        Optional<IfNode> ifNode = parseIfNode();
-                        if(ifNode.isPresent())
-                        {
-                            memberNode.mutator.get().add(ifNode.get());
-                            RequireNewLine();
-                        }
-                    }
-                    else if(tokens.peek(0).get().getType() == Token.TokenTypes.LOOP || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-                    {
-                        Optional<LoopNode> loopNode = parseLoopNode();
-                        if(loopNode.isPresent())
-                        {
-                            memberNode.mutator.get().add(loopNode.get());
-                            RequireNewLine();
-                        }
+                        memberNode.mutator.get().add(statementNode.get());
                     }
                     else
                     {
@@ -545,39 +491,15 @@ public class Parser {
         List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode_1 = parseIfNode();
-                if(ifNode_1.isPresent())
-                {
-                    statements.add(ifNode_1.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() /*|| tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN)*/)
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    statements.add(loopNode.get());
-                    RequireNewLine();
-                }
+                statements.add(statementNode.get());
             }
             else
             {
-                Optional<StatementNode> disambiguate = disambiguate();
-                if(disambiguate.isPresent())
-                {
-                    statements.add(disambiguate.get());
-                }
-                else
-                {
-                    RequireNewLine();
-                }
-                //RequireNewLine();
+                RequireNewLine();
             }
-
         }
         if(!statements.isEmpty())
         {
@@ -714,23 +636,10 @@ public class Parser {
         }
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
-            if(tokens.matchAndRemove(Token.TokenTypes.IF).isPresent())
+            Optional<StatementNode> statementNode = parseStatementNode();
+            if(statementNode.isPresent())
             {
-                Optional<IfNode> ifNode = parseIfNode();
-                if(ifNode.isPresent())
-                {
-                    elseNode.statements.add(ifNode.get());
-                    RequireNewLine();
-                }
-            }
-            else if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isPresent() || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
-            {
-                Optional<LoopNode> loopNode = parseLoopNode();
-                if(loopNode.isPresent())
-                {
-                    elseNode.statements.add(loopNode.get());
-                    RequireNewLine();
-                }
+                elseNode.statements.add(statementNode.get());
             }
             else
             {
@@ -894,6 +803,39 @@ public class Parser {
             return Optional.of(variableReferenceNode.get());
         }
 
+        return Optional.empty();
+    }
+
+    Optional<StatementNode> parseStatementNode() throws SyntaxErrorException {
+        var peekedToken = tokens.peek(0).get().getType();
+        if(peekedToken == Token.TokenTypes.IF)
+        {
+            Optional<IfNode> ifNode_1 = parseIfNode();
+            if(ifNode_1.isPresent())
+            {
+                return Optional.of(ifNode_1.get());
+                //RequireNewLine();
+            }
+        }
+        else if(peekedToken == Token.TokenTypes.LOOP /*|| tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN)*/)
+        {
+            Optional<LoopNode> loopNode = parseLoopNode();
+            if(loopNode.isPresent())
+            {
+                return Optional.of(loopNode.get());
+                //RequireNewLine();
+            }
+        }
+        else
+        {
+            Optional<StatementNode> disambiguate = disambiguate();
+            if(disambiguate.isPresent())
+            {
+                return Optional.of(disambiguate.get());
+            }
+
+            //RequireNewLine();
+        }
         return Optional.empty();
     }
 
