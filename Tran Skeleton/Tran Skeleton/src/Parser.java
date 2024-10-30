@@ -478,16 +478,12 @@ public class Parser {
             return Optional.empty();
         }
 
-        /*
-        temporally using a null node for the boolexp
-         */
+
         var boolexp = BoolexpTerm();
         if(boolexp.isPresent())
         {
             ifNode.condition = boolexp.get();
         }
-        //boolexp = null;
-       //ifNode.condition = boolexp;
 
         if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
         {
@@ -662,17 +658,49 @@ public class Parser {
         return Optional.of(parseVariableReference().get());
     }
 
-    /*
-    temporarily returning a empty for Expression()
-     */
-    private Optional<MethodCallExpressionNode> MethodCallExpression(){
-        return Optional.empty();
+
+    //First draft done
+//  MethodCallExpression = [Identifier "."] Identifier "(" [Expression {"," Expression }] ")"
+    private Optional<MethodCallExpressionNode> MethodCallExpression() throws SyntaxErrorException {
+        MethodCallExpressionNode methodCallExpressionNode = new MethodCallExpressionNode();
+        //Checks if there is an obj name such as test.
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.DOT))
+        {
+            methodCallExpressionNode.objectName = Optional.of(tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue()); //Setting the obj name
+            tokens.matchAndRemove(Token.TokenTypes.DOT); //parsing the dot(doesnt really do anything
+        }
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN))
+        {
+            methodCallExpressionNode.methodName = tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue(); //Setting the Method name
+            tokens.matchAndRemove(Token.TokenTypes.LPAREN); //parsing the left paren
+
+            do
+            {
+                Optional<ExpressionNode> expressionNode = Expression();
+                if(expressionNode.isPresent())
+                {
+                    methodCallExpressionNode.parameters.add(expressionNode.get());
+                }
+                else {
+                    break;
+                }
+
+            }while(tokens.matchAndRemove(Token.TokenTypes.COMMA).isPresent());
+
+            if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
+            {
+                throw new SyntaxErrorException("Expected closing parenthesis for method call", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
+
+            return Optional.of(methodCallExpressionNode);
+        }
+        else
+        {
+            return Optional.empty();
+        }
     }
 
 
-    /*
-    Done for first draft
-     */
     private Optional<StatementNode> disambiguate() throws SyntaxErrorException {
         Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
         if(methodCallExpression.isPresent())
@@ -706,39 +734,6 @@ public class Parser {
         }
         return Optional.empty();
     }
-
-   //BoolExpTerm = BoolExpFactor {("and"|"or") BoolExpTerm} | "not" BoolExpTerm
-//   private Optional<ExpressionNode> BoolexpTerm() throws SyntaxErrorException {
-//
-//       Optional<ExpressionNode> leftFactor = BoolexpFactor();
-//       if (leftFactor.isEmpty()) {
-//           return Optional.empty();
-//       }
-//
-//
-//       if (tokens.peek(0).get().getType() == Token.TokenTypes.AND || tokens.peek(0).get().getType() == Token.TokenTypes.OR){
-//
-//           // Create a new BooleanOpNode for the operation
-//           BooleanOpNode booleanOpNode = new BooleanOpNode();
-//           booleanOpNode.left = leftFactor.get();
-//
-//           // Parse the operator (and/or)
-//           if (tokens.matchAndRemove(Token.TokenTypes.AND).isPresent()) {
-//               booleanOpNode.op = BooleanOpNode.BooleanOperations.and;
-//           } else if (tokens.matchAndRemove(Token.TokenTypes.OR).isPresent()) {
-//               booleanOpNode.op = BooleanOpNode.BooleanOperations.or;
-//           }
-//
-//           var rightNode = BoolexpTerm();
-//           if (rightNode.isEmpty()) {
-//               throw new SyntaxErrorException("Expected expression after boolean operation",
-//                       tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-//           }
-//           booleanOpNode.right = rightNode.get();
-//           return Optional.of(booleanOpNode);
-//       }
-//       return leftFactor;
-//   }
 
     //Took the code above and commented it out, instead calling specific AND OR and NOT terms as separate functions in order to implement an order of precedence ie NOT -> AND -> OR
     //The method to call at the begging of each function was from the discussion so the highest precedence(NOT) will be at the bottom as the last call
@@ -802,33 +797,6 @@ public class Parser {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //First draft done
 //    BoolExpFactor = MethodCallExpression | (Expression ( "==" | "!=" | "<=" | ">=" | ">" | "<" )
 //    Expression) | VariableReference
     private Optional<ExpressionNode> BoolexpFactor() throws SyntaxErrorException {
