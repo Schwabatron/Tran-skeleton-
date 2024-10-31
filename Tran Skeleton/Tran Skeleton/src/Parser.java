@@ -723,7 +723,6 @@ public class Parser {
             left = Optional.of(mathOpNode);
             peekedToken = tokens.peek(0).get().getType();
         }
-
         return left;
     }
 
@@ -852,6 +851,7 @@ public class Parser {
 
         }while(tokens.matchAndRemove(Token.TokenTypes.COMMA).isPresent());
 
+
         if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isEmpty())
         {
             throw new SyntaxErrorException("Expected Assign to method call", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
@@ -912,13 +912,21 @@ public class Parser {
         }
     }
 
-
     private Optional<StatementNode> disambiguate() throws SyntaxErrorException {
-        Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
-        if(methodCallExpression.isPresent())
+
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.COMMA))
         {
-            return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
+            Optional<MethodCallStatementNode> methodcallstatement = parseMethodCall();
+            if(methodcallstatement.isPresent())
+            {
+                return Optional.of(methodcallstatement.get());
+            }
         }
+//        Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
+//        if(methodCallExpression.isPresent())
+//        {
+//            return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
+//        }
 
 
         Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
@@ -1069,14 +1077,6 @@ public class Parser {
             return Optional.of(expressionNodeLeft.get());
         }
 
-        //step 3 look for a variable reference
-//        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
-//        if(variableReferenceNode.isPresent())
-//        {
-//            return Optional.of(variableReferenceNode.get());
-//        }
-//
-//        return Optional.empty();
     }
 
     Optional<StatementNode> parseStatementNode() throws SyntaxErrorException {
