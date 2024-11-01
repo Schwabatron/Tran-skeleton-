@@ -359,17 +359,6 @@ public class Parser {
     }
 
     //Member = VariableDeclaration NEWLINE [ INDENT [ "accessor:" Statements] ["mutator:" Statements] DEDENT]
-    /*
-    number t
-        accessor:
-            value=t
-        mutator:
-            t=value
-
-     */
-    /*
-    **DEFINITELY problems in this function**
-     */
     private Optional<MemberNode> parseMember() throws SyntaxErrorException {
         MemberNode memberNode = new MemberNode();
 
@@ -534,7 +523,7 @@ public class Parser {
         return Optional.of(ifNode);
     }
     //loop boolexpterm | variableref '=' boolexpterm new loop i hope works
-    //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements //BROKEN
+    //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements
     private Optional<LoopNode> parseLoopNode() throws SyntaxErrorException {
         LoopNode loopNode = new LoopNode();
 
@@ -863,8 +852,6 @@ public class Parser {
         return Optional.of(methodcall);
     }
 
-
-    //First draft done 10/30/2024: 3:01pm
     //MethodCallExpression = [Identifier "."] Identifier "(" [Expression {"," Expression }] ")"
     private Optional<MethodCallExpressionNode> MethodCallExpression() throws SyntaxErrorException {
         MethodCallExpressionNode methodCallExpressionNode = new MethodCallExpressionNode();
@@ -948,10 +935,6 @@ public class Parser {
                         assignmentNode.get().expression = expressionNode.get();
                         return Optional.of(assignmentNode.get());
                     }
-//                    Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
-//                    assignmentNode.get().target = variableReferenceNode.get();
-//                    assignmentNode.get().expression = expressionNode.get();
-//                    return Optional.of(assignmentNode.get());
                 }
                 else
                 {
