@@ -565,10 +565,7 @@ public class Parser {
             }
         }
 
-        if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
-        {
-            throw new SyntaxErrorException("Expected Newline after loop statement", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-        }
+        RequireNewLine();
 
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
         {
