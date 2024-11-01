@@ -532,52 +532,49 @@ public class Parser {
         }
 
         return Optional.of(ifNode);
-    } //BROKEN
-
+    }
+    //loop boolexpterm | variableref '=' boolexpterm new loop i hope works
     //Loop = [VariableReference "=" ] "loop" ( BoolExpTerm ) NEWLINE Statements //BROKEN
     private Optional<LoopNode> parseLoopNode() throws SyntaxErrorException {
         LoopNode loopNode = new LoopNode();
-        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
-        if(variableReferenceNode.isPresent())
-        {
-            if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isEmpty())
-            {
-                throw new SyntaxErrorException("Expected Assign for variable", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-            }
-            loopNode.assignment = Optional.of(variableReferenceNode.get());
-        }
 
         if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isEmpty())
         {
             return Optional.empty();
         }
 
-        if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
+        //Test for assignment
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.ASSIGN))
         {
-            throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-        }
+            loopNode.assignment = parseVariableReference();
+            tokens.matchAndRemove(Token.TokenTypes.ASSIGN);
 
-        var boolexp = BoolexpTerm();
-        if(boolexp.isPresent())
-        {
-            loopNode.expression = boolexp.get();
-        }
-        //loopNode.expression = boolexp;
+            loopNode.expression = BoolexpTerm().get();
 
-        if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
+        }
+        else
         {
-            throw new SyntaxErrorException("Expected RPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            Optional<ExpressionNode> boolexp = BoolexpTerm();
+            if(boolexp.isPresent())
+            {
+                loopNode.expression = boolexp.get();
+            }
+            else
+            {
+                throw new SyntaxErrorException("Expected BoolexpTerm for loop statement", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            }
         }
 
         if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
         {
-            throw new SyntaxErrorException("Expected Newline", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+            throw new SyntaxErrorException("Expected Newline after loop statement", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
-        //parse statements
-        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
+        {
             throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
+
         List<StatementNode> statements = new ArrayList<>();
         while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -601,6 +598,75 @@ public class Parser {
             throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
         }
 
+
+
+
+
+
+//        Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
+//        if(variableReferenceNode.isPresent())
+//        {
+//            if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isEmpty())
+//            {
+//                throw new SyntaxErrorException("Expected Assign for variable", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//            }
+//            loopNode.assignment = Optional.of(variableReferenceNode.get());
+//        }
+//
+//        if(tokens.matchAndRemove(Token.TokenTypes.LOOP).isEmpty())
+//        {
+//            return Optional.empty();
+//        }
+//
+//        if(tokens.matchAndRemove(Token.TokenTypes.LPAREN).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected LPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
+//
+//        var boolexp = BoolexpTerm();
+//        if(boolexp.isPresent())
+//        {
+//            loopNode.expression = boolexp.get();
+//        }
+//        //loopNode.expression = boolexp;
+//
+//        if(tokens.matchAndRemove(Token.TokenTypes.RPAREN).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected RPAREN", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
+//
+//        if(tokens.matchAndRemove(Token.TokenTypes.NEWLINE).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected Newline", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
+//
+//        //parse statements
+//        if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty()) {
+//            throw new SyntaxErrorException("Expected Indent ", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
+//        List<StatementNode> statements = new ArrayList<>();
+//        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+//        {
+//            Optional<StatementNode> statementNode = parseStatementNode();
+//            if(statementNode.isPresent())
+//            {
+//                statements.add(statementNode.get());
+//            }
+//            else
+//            {
+//                RequireNewLine();
+//            }
+//
+//        }
+//        if(!statements.isEmpty())
+//        {
+//            loopNode.statements = statements;
+//        }
+//        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
+//
 
         return Optional.of(loopNode);
     }
@@ -922,11 +988,14 @@ public class Parser {
                 return Optional.of(methodcallstatement.get());
             }
         }
-//        Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
-//        if(methodCallExpression.isPresent())
-//        {
-//            return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
-//        }
+
+        //Goes against ebnf but is used in testing i guess
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN) || tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.DOT)) {
+            Optional<MethodCallExpressionNode> methodCallExpression = MethodCallExpression();
+            if (methodCallExpression.isPresent()) {
+                return Optional.of(new MethodCallStatementNode(methodCallExpression.get()));
+            }
+        }
 
 
         Optional<VariableReferenceNode> variableReferenceNode = parseVariableReference();
@@ -935,12 +1004,27 @@ public class Parser {
             if(tokens.matchAndRemove(Token.TokenTypes.ASSIGN).isPresent())
             {
                 Optional<ExpressionNode> expressionNode = Expression();
+
                 if(expressionNode.isPresent())
                 {
-                    Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
-                    assignmentNode.get().target = variableReferenceNode.get();
-                    assignmentNode.get().expression = expressionNode.get();
-                    return Optional.of(assignmentNode.get());
+                    ExpressionNode node = expressionNode.get();
+                    if(node instanceof MethodCallExpressionNode)
+                    {
+                        Optional<MethodCallStatementNode> methodcallstatementNode = Optional.of(new MethodCallStatementNode((MethodCallExpressionNode) node));
+                        methodcallstatementNode.get().returnValues.add(variableReferenceNode.get());
+                        return Optional.of(methodcallstatementNode.get());
+                    }
+                    else
+                    {
+                        Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
+                        assignmentNode.get().target = variableReferenceNode.get();
+                        assignmentNode.get().expression = expressionNode.get();
+                        return Optional.of(assignmentNode.get());
+                    }
+//                    Optional<AssignmentNode> assignmentNode = Optional.of(new AssignmentNode());
+//                    assignmentNode.get().target = variableReferenceNode.get();
+//                    assignmentNode.get().expression = expressionNode.get();
+//                    return Optional.of(assignmentNode.get());
                 }
                 else
                 {
