@@ -177,6 +177,12 @@ public class Parser {
 
         RequireNewLine();
 
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
+        //RequireNewLine();
+
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
         {
             throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
@@ -251,6 +257,11 @@ public class Parser {
 
         RequireNewLine();
 
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
+
         //Parse Method body for statments and local var declarations
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
@@ -320,6 +331,11 @@ public class Parser {
         }
 
         RequireNewLine();
+
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
 
         //parse method body
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT

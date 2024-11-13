@@ -161,6 +161,7 @@ public class InterpreterTests {
         var l  = new Lexer(program);
         try {
             var tokens = l.Lex();
+            System.out.println(tokens);
             var tran = new TranNode();
             var p = new Parser(tran,tokens);
             p.Tran();
