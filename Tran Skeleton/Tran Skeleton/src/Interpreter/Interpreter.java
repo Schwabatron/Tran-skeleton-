@@ -80,6 +80,35 @@ public class Interpreter {
         /*
             Finding the method
          */
+        if(mc.objectName.isEmpty()) //Checking if the
+        {
+           MethodDeclarationNode method = getMethodFromObject(object.get(), mc, parameters);
+           result = interpretMethodCall(object, method, parameters);
+           return result;
+        }
+        int i = 0;
+        for(var name : top.Classes) //searches through the classes
+        {
+            if(name.equals(mc.objectName)) // if the method name is the same as the class name
+            {
+                result = interpretMethodCall(object, name.methods.get(i), parameters );
+                return result;
+            }
+            i++;
+        }
+        for(int j = 0; j < object.get().members.size(); j++)
+        {
+
+        }
+        //object.get().astNode.methods// used for searching the object
+
+        //use top for finding static
+
+        //object.get().members
+
+                //locals//use for for local / members
+
+
 
         return result;
     }
@@ -102,6 +131,11 @@ public class Interpreter {
      */
     private List<InterpreterDataType> interpretMethodCall(Optional<ObjectIDT> object, MethodDeclarationNode m, List<InterpreterDataType> values) {
         var retVal = new LinkedList<InterpreterDataType>();
+
+//        if(m instanceof BuiltInMethodDeclarationNode)
+//        {
+//            ((BuiltInMethodDeclarationNode) m).Execute(values);
+//        }
 
 
         /*
@@ -128,6 +162,11 @@ public class Interpreter {
         {
             InterpreterDataType local = instantiate(m.locals.get(i).type);
             locals.put(m.locals.get(i).name, local);
+        }
+
+        if(m instanceof BuiltInMethodDeclarationNode)
+        {
+            ((BuiltInMethodDeclarationNode) m).Execute(values);
         }
 
 
@@ -474,6 +513,13 @@ public class Interpreter {
      * @return a method or throws an exception
      */
     private MethodDeclarationNode getMethodFromObject(ObjectIDT object, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
+        for(var method : object.astNode.methods)
+        {
+            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+            {
+                return method;
+            }
+        }
         throw new RuntimeException("Unable to resolve method call " + mc);
     }
 
