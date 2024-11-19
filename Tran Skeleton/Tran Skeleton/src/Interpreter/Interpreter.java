@@ -15,6 +15,14 @@ public class Interpreter {
      */
     public Interpreter(TranNode top) {
         this.top = top;
+        ClassNode console = new ClassNode();
+        console.name = "console";
+        BuiltInMethodDeclarationNode console_write = new ConsoleWrite();
+        console_write.isShared = true;
+        console_write.isVariadic = true;
+        console.methods.add(console_write);
+        console_write.name = "write";
+        top.Classes.add(console);
        //starting point for the interpreter
     }
 
@@ -86,15 +94,15 @@ public class Interpreter {
            result = interpretMethodCall(object, method, parameters);
            return result;
         }
-        int i = 0;
         for(var name : top.Classes) //searches through the classes
         {
-            if(name.equals(mc.objectName)) // if the method name is the same as the class name
+            String classname = name.name;
+            if(classname.equals(mc.objectName.get())) // if the method name is the same as the class name
             {
-                result = interpretMethodCall(object, name.methods.get(i), parameters );
+                result = interpretMethodCall(object, name.methods.getFirst() , parameters);
                 return result;
             }
-            i++;
+
         }
         for(int j = 0; j < object.get().members.size(); j++)
         {
@@ -132,15 +140,13 @@ public class Interpreter {
     private List<InterpreterDataType> interpretMethodCall(Optional<ObjectIDT> object, MethodDeclarationNode m, List<InterpreterDataType> values) {
         var retVal = new LinkedList<InterpreterDataType>();
 
-//        if(m instanceof BuiltInMethodDeclarationNode)
-//        {
-//            ((BuiltInMethodDeclarationNode) m).Execute(values);
-//        }
+        if(m instanceof BuiltInMethodDeclarationNode)
+        {
 
-
-        /*
-            Note for later: I still have not implemented the built-in functions. this will need to be done and accounted for at a later time.
-         */
+           List<InterpreterDataType> console = ((BuiltInMethodDeclarationNode) m).Execute(values);
+           retVal.addAll(console);
+           return retVal;
+        }
 
         if(m.parameters.size() != values.size())
         {
@@ -164,12 +170,6 @@ public class Interpreter {
             locals.put(m.locals.get(i).name, local);
         }
 
-        if(m instanceof BuiltInMethodDeclarationNode)
-        {
-            ((BuiltInMethodDeclarationNode) m).Execute(values);
-        }
-
-
 
         /*
             interprets the statements located in the body of the method(Assignments, if, loop, method calls)
@@ -191,7 +191,7 @@ public class Interpreter {
         return retVal;
     }
 
-    //              Running Constructors
+
 
     /**
      * This is a special case of the code for methods. Just different enough to make it worthwhile to split it out.
