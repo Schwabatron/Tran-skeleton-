@@ -15,15 +15,24 @@ public class Interpreter {
      */
     public Interpreter(TranNode top) {
         this.top = top;
+        add_build_ins(top);
+       //starting point for the interpreter
+    }
+
+    private void add_build_ins(TranNode top)
+    {
         ClassNode console = new ClassNode();
-        console.name = "console";
+        //Class info
+        console.name = "console"; //maybe change
         BuiltInMethodDeclarationNode console_write = new ConsoleWrite();
+        //Method info
         console_write.isShared = true;
         console_write.isVariadic = true;
+        console_write.name = "write"; //maybe change
+        //Adding method
         console.methods.add(console_write);
-        console_write.name = "write";
+        //adding class to tran_node
         top.Classes.add(console);
-       //starting point for the interpreter
     }
 
     /**
