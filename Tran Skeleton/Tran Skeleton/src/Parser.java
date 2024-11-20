@@ -270,7 +270,7 @@ public class Parser {
         }
 
         //Statement = If | Loop | MethodCall | Assignment
-        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty() && !tokens.done())//Now I need to parse statements and variable declarations
         {
             if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
@@ -517,10 +517,10 @@ public class Parser {
         {
             ifNode.statements = statements;
         }
-        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
-        {
-            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-        }
+//        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
 
         if(tokens.peek(0).get().getType() == Token.TokenTypes.ELSE)
         {
@@ -559,6 +559,7 @@ public class Parser {
         }
         else
         {
+            loopNode.assignment = Optional.empty();
             Optional<ExpressionNode> boolexp = BoolexpTerm();
             if(boolexp.isPresent())
             {
@@ -617,6 +618,7 @@ public class Parser {
     private Optional<ElseNode> parseElseNode() throws SyntaxErrorException
     {
         ElseNode elseNode = new ElseNode();
+        List<StatementNode> statements = new ArrayList<>();
         if(tokens.matchAndRemove(Token.TokenTypes.ELSE).isEmpty())
         {
             return Optional.empty();
@@ -636,13 +638,17 @@ public class Parser {
             Optional<StatementNode> statementNode = parseStatementNode();
             if(statementNode.isPresent())
             {
-                elseNode.statements.add(statementNode.get());
+                statements.add(statementNode.get());
             }
             else
             {
                 RequireNewLine();
             }
 
+        }
+        if(!statements.isEmpty())
+        {
+            elseNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -879,6 +885,7 @@ public class Parser {
         }
         if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN))
         {
+            methodCallExpressionNode.objectName = Optional.empty();
             methodCallExpressionNode.methodName = tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue(); //Setting the Method name
             tokens.matchAndRemove(Token.TokenTypes.LPAREN); //parsing the left paren
 

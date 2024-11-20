@@ -526,7 +526,11 @@ public class Interpreter {
      * @return does this method match the method call?
      */
     private boolean doesMatch(MethodDeclarationNode m, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
-        return true;
+        if(m.name.equals(mc.methodName) && m.parameters.size() == parameters.size())
+        {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -622,12 +626,19 @@ public class Interpreter {
      * @return a method or throws an exception
      */
     private MethodDeclarationNode getMethodFromObject(ObjectIDT object, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
-        for(var method : object.astNode.methods)
+        for(var method : object.members.keySet())
         {
-            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+            if(method.equals(mc.methodName))
             {
-                return method;
+                if(doesMatch((MethodDeclarationNode) object.members.get(mc.methodName), mc, parameters))
+                {
+                    return (MethodDeclarationNode) object.members.get(mc.methodName);
+                }
             }
+//            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+//            {
+//                return method;
+//            }
         }
         throw new RuntimeException("Unable to resolve method call " + mc);
     }
