@@ -108,24 +108,42 @@ public class Interpreter {
             String classname = name.name;
             if(classname.equals(mc.objectName.get())) // if the method name is the same as the class name
             {
-                result = interpretMethodCall(object, name.methods.getFirst() , parameters);
-                return result;
+                for(var method : name.methods)
+                {
+                    if(method.name.equals(mc.methodName))
+                    {
+                        result = interpretMethodCall(object, method , parameters);
+                        return result;
+                    }
+                }
+                //result = interpretMethodCall(object, name.methods.getFirst() , parameters);
+                //return result;
             }
 
         }
-        for(int j = 0; j < object.get().members.size(); j++)
-        {
-
+        //Setting up for members
+        for (var memberName : object.get().members.keySet()) {
+           if(memberName.equals(mc.objectName.get()))
+           {
+               for(var method : object.get().astNode.methods) {
+                   if(method.name.equals(mc.methodName))
+                   {
+                       result = interpretMethodCall(object, method , parameters);
+                       return result;
+                   }
+               }
+           }
         }
-        //object.get().astNode.methods// used for searching the object
-
-        //use top for finding static
-
-        //object.get().members
-
-                //locals//use for for local / members
-
-
+        for (var localName : locals.keySet()) {
+            if (localName.equals(mc.objectName.get())) {
+                for (var method : object.get().astNode.methods) {
+                    if (method.name.equals(mc.methodName)) {
+                        result = interpretMethodCall(object, method, parameters);
+                        return result;
+                    }
+                }
+            }
+        }
 
         return result;
     }
@@ -215,7 +233,24 @@ public class Interpreter {
      * @param mc  - the method call for this construction
      * @param newOne - the object that we just created that we are calling the constructor for
      */
-    private void findConstructorAndRunIt(Optional<ObjectIDT> callerObj, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc, ObjectIDT newOne) {
+    private void findConstructorAndRunIt(Optional<ObjectIDT> callerObj, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc, ObjectIDT newOne)  {
+        List<InterpreterDataType> parameters = getParameters(Optional.of(newOne), locals, mc);
+        Optional<ClassNode> class_node = getClassByName(mc.objectName.get());
+
+        if(class_node.isPresent())
+        {
+           for(var constructor : class_node.get().constructors)
+           {
+               if(doesConstructorMatch(constructor, mc, parameters))
+               {
+                   interpretConstructorCall(callerObj.get(), constructor, parameters);
+               }
+           }
+        }
+        else
+        {
+            throw new Error();
+        }
     }
 
     /**
@@ -230,6 +265,27 @@ public class Interpreter {
      * @param values - the parameter values being passed to the constructor
      */
     private void interpretConstructorCall(ObjectIDT object, ConstructorNode c, List<InterpreterDataType> values) {
+        if (c.parameters.size() != values.size()) {
+            throw new IllegalArgumentException("Parameter count mismatch for constructor call");
+        }
+
+        // Step 2: Create a local variables map
+        HashMap<String, InterpreterDataType> locals = new HashMap<>();
+
+        // Add constructor parameters to locals
+        for (int i = 0; i < c.parameters.size(); i++) {
+            String paramName = c.parameters.get(i).name;
+            locals.put(paramName, values.get(i));
+        }
+
+        // Step 3: Add local variables declared in the constructor
+        for (var localVar : c.locals) {
+            InterpreterDataType local = instantiate(localVar.type);
+            locals.put(localVar.name, local);
+        }
+
+        // Step 4: Run the constructor's body
+        interpretStatementBlock(Optional.of(object), c.statements, locals);
     }
 
     //              Running Instructions
@@ -266,7 +322,7 @@ public class Interpreter {
                 - Assign the value from evaluate to the target
              */
             if(statement instanceof AssignmentNode) {
-                InterpreterDataType target =  findVariable(((AssignmentNode) statement).target.name,locals, object);
+                InterpreterDataType target = findVariable(((AssignmentNode) statement).target.name,locals, object);
                 InterpreterDataType evaluate_assignment = evaluate(locals, object, ((AssignmentNode) statement).expression);
                 target.Assign(evaluate_assignment);
             }
@@ -406,6 +462,33 @@ public class Interpreter {
             List<InterpreterDataType> methodexp = findMethodForMethodCallAndRunIt(object, locals, ((MethodCallStatementNode) expression)); //Confusing rule here in the cast
             return methodexp.get(0);
         }
+        else if(expression instanceof NewNode) //Gets instances of new objects
+        {
+            String class_name = ((NewNode) expression).className;
+            Optional<ClassNode> classNode = getClassByName(class_name);
+
+            for (var member : classNode.get().members) {
+                // Default initialize each member in the object
+                InterpreterDataType defaultValue = instantiate(member.declaration.type);
+                object.get().members.put(member.declaration.name, defaultValue);
+            }
+
+            ObjectIDT newObject = new ObjectIDT(classNode.get());
+
+            List<InterpreterDataType> parameters = new ArrayList<>();
+
+            for(var param : ((NewNode) expression).parameters)
+            {
+                parameters.add(evaluate(locals, object, param));
+            }
+
+            MethodCallStatementNode mc = new MethodCallStatementNode();
+            mc.objectName = Optional.of(class_name);
+            mc.parameters = ((NewNode) expression).parameters;
+
+            findConstructorAndRunIt(object, locals, mc, newObject);
+            return newObject;
+        }
         else if(expression instanceof VariableReferenceNode) {
             InterpreterDataType variable = findVariable(((VariableReferenceNode) expression).name, locals, object);
 
@@ -454,6 +537,23 @@ public class Interpreter {
      * @return does this constructor match the method call?
      */
     private boolean doesConstructorMatch(ConstructorNode c, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
+        if(c.parameters.size() != parameters.size()) // parameter count check
+        {
+            return false;
+        }
+
+        int i = 0;
+        for(var param_type : c.parameters)
+        {
+            String expected_type = param_type.type;
+            InterpreterDataType provided = parameters.get(i);
+            if(!typeMatchToIDT(expected_type, provided))
+            {
+                return false;
+            }
+            i++;
+        }
+
         return true;
     }
 
