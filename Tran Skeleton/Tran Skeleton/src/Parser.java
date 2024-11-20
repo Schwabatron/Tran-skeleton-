@@ -883,9 +883,13 @@ public class Parser {
             methodCallExpressionNode.objectName = Optional.of(tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue()); //Setting the obj name
             tokens.matchAndRemove(Token.TokenTypes.DOT); //parsing the dot(doesn't really do anything
         }
-        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN))
+        else
         {
             methodCallExpressionNode.objectName = Optional.empty();
+        }
+        if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN))
+        {
+
             methodCallExpressionNode.methodName = tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue(); //Setting the Method name
             tokens.matchAndRemove(Token.TokenTypes.LPAREN); //parsing the left paren
 
