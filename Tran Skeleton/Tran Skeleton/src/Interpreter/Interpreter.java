@@ -138,7 +138,7 @@ public class Interpreter {
             if (localName.equals(mc.objectName.get())) {
                 for (var method : object.get().astNode.methods) {
                     if (method.name.equals(mc.methodName)) {
-                        result = interpretMethodCall(object, method, parameters);
+                        result = interpretMethodCall(((ReferenceIDT) locals.get(localName)).refersTo, method, parameters);
                         return result;
                     }
                 }
@@ -196,6 +196,11 @@ public class Interpreter {
             InterpreterDataType local = instantiate(m.locals.get(i).type);
             locals.put(m.locals.get(i).name, local);
         }
+        for(int i = 0; i < m.returns.size(); i++)
+        {
+            InterpreterDataType returnType = instantiate(m.returns.get(i).type);
+            locals.put(m.returns.get(i).name, returnType);
+        }
 
 
         /*
@@ -234,7 +239,7 @@ public class Interpreter {
      * @param newOne - the object that we just created that we are calling the constructor for
      */
     private void findConstructorAndRunIt(Optional<ObjectIDT> callerObj, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc, ObjectIDT newOne)  {
-        List<InterpreterDataType> parameters = getParameters(Optional.of(newOne), locals, mc);
+        List<InterpreterDataType> parameters = getParameters(callerObj, locals, mc);
         Optional<ClassNode> class_node = getClassByName(mc.objectName.get());
 
         if(class_node.isPresent())
@@ -243,7 +248,7 @@ public class Interpreter {
            {
                if(doesConstructorMatch(constructor, mc, parameters))
                {
-                   interpretConstructorCall(callerObj.get(), constructor, parameters);
+                   interpretConstructorCall(newOne, constructor, parameters);
                }
            }
         }
@@ -459,27 +464,29 @@ public class Interpreter {
             }
         }
         else if(expression instanceof MethodCallExpressionNode){
-            List<InterpreterDataType> methodexp = findMethodForMethodCallAndRunIt(object, locals, ((MethodCallStatementNode) expression)); //Confusing rule here in the cast
+            MethodCallStatementNode statementNode = new MethodCallStatementNode((MethodCallExpressionNode) expression);
+            List<InterpreterDataType> methodexp = findMethodForMethodCallAndRunIt(object, locals, statementNode); //Confusing rule here in the cast
             return methodexp.get(0);
         }
         else if(expression instanceof NewNode) //Gets instances of new objects
         {
             String class_name = ((NewNode) expression).className;
             Optional<ClassNode> classNode = getClassByName(class_name);
+            ObjectIDT newObject = new ObjectIDT(classNode.get());
 
             for (var member : classNode.get().members) {
                 // Default initialize each member in the object
                 InterpreterDataType defaultValue = instantiate(member.declaration.type);
-                object.get().members.put(member.declaration.name, defaultValue);
+                newObject.members.put(member.declaration.name, defaultValue);
             }
 
-            ObjectIDT newObject = new ObjectIDT(classNode.get());
+           // ObjectIDT newObject = new ObjectIDT(classNode.get());
 
             List<InterpreterDataType> parameters = new ArrayList<>();
 
             for(var param : ((NewNode) expression).parameters)
             {
-                parameters.add(evaluate(locals, object, param));
+                parameters.add(evaluate(locals, Optional.of(newObject), param));
             }
 
             MethodCallStatementNode mc = new MethodCallStatementNode();
@@ -626,19 +633,19 @@ public class Interpreter {
      * @return a method or throws an exception
      */
     private MethodDeclarationNode getMethodFromObject(ObjectIDT object, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
-        for(var method : object.members.keySet())
+        for(var method : object.astNode.methods)
         {
-            if(method.equals(mc.methodName))
-            {
-                if(doesMatch((MethodDeclarationNode) object.members.get(mc.methodName), mc, parameters))
-                {
-                    return (MethodDeclarationNode) object.members.get(mc.methodName);
-                }
-            }
-//            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+//            if(method.equals(mc.methodName))
 //            {
-//                return method;
+//                if(doesMatch((MethodDeclarationNode) object.members.get(mc.methodName), mc, parameters))
+//                {
+//                    return (MethodDeclarationNode) object.members.get(mc.methodName);
+//                }
 //            }
+            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+            {
+                return method;
+            }
         }
         throw new RuntimeException("Unable to resolve method call " + mc);
     }
