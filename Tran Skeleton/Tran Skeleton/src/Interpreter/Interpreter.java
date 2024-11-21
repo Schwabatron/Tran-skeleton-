@@ -128,7 +128,7 @@ public class Interpreter {
                for(var method : object.get().astNode.methods) {
                    if(method.name.equals(mc.methodName))
                    {
-                       result = interpretMethodCall(object, method , parameters);
+                       result = interpretMethodCall(((ReferenceIDT) object.get().members.get(memberName)).refersTo, method , parameters);
                        return result;
                    }
                }
@@ -533,8 +533,17 @@ public class Interpreter {
      * @return does this method match the method call?
      */
     private boolean doesMatch(MethodDeclarationNode m, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
-        if(m.name.equals(mc.methodName) && m.parameters.size() == parameters.size())
+        if(m.name.equals(mc.methodName) && m.parameters.size() == parameters.size() && m.parameters.size() == mc.parameters.size())
         {
+            int i = 0;
+            for(var name : m.parameters)
+            {
+                if(!typeMatchToIDT(name.type, parameters.get(i)))
+                {
+                    return false;
+                }
+                i++;
+            }
             return true;
         }
         return false;
@@ -642,7 +651,7 @@ public class Interpreter {
 //                    return (MethodDeclarationNode) object.members.get(mc.methodName);
 //                }
 //            }
-            if(method.name.equals(mc.methodName) && method.parameters.size() == parameters.size())
+            if(doesMatch(method, mc, parameters))
             {
                 return method;
             }

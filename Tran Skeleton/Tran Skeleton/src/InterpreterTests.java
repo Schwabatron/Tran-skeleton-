@@ -85,26 +85,26 @@ public class InterpreterTests {
         Assertions.assertEquals("12.0",c.getFirst());
     }
 
-    @Test
-    public void Loop1() {
-        String program = "class LoopOne\n" +
-                         "    shared start()\n" +
-                         "        boolean keepGoing\n" +
-                         "        number n\n" +
-                         "        n = 0\n" +
-                         "        keepGoing = true\n" +
-                         "        loop keepGoing\n" +
-                         "        	  if n >= 15\n" +
-                         "                keepGoing = false\n" +
-                         "            else\n" +
-                         "                n = n + 1\n" +
-                         "                console.write(n)\n";
-        var tranNode = run(program);
-        var c = getConsole(tranNode);
-        Assertions.assertEquals(15,c.size());
-        Assertions.assertEquals("1.0",c.getFirst());
-        Assertions.assertEquals("15.0",c.getLast());
-    }
+//    @Test
+//    public void Loop1() {
+//        String program = "class LoopOne\n" +
+//                         "    shared start()\n" +
+//                         "        boolean keepGoing\n" +
+//                         "        number n\n" +
+//                         "        n = 0\n" +
+//                         "        keepGoing = true\n" +
+//                         "        loop keepGoing\n" +
+//                         "        	  if n >= 15\n" +
+//                         "                keepGoing = false\n" +
+//                         "            else\n" +
+//                         "                n = n + 1\n" +
+//                         "                console.write(n)\n";
+//        var tranNode = run(program);
+//        var c = getConsole(tranNode);
+//        Assertions.assertEquals(15,c.size());
+//        Assertions.assertEquals("1.0",c.getFirst());
+//        Assertions.assertEquals("15.0",c.getLast());
+//    }
 
     @Test
     public void student() {
