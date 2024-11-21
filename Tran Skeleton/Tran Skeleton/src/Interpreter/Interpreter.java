@@ -345,6 +345,38 @@ public class Interpreter {
                     locals.put(returned_value.toString(), returned_value); //maybe tostring (come back later)
                 }
             }
+            //if node
+            else if(statement instanceof IfNode)
+            {
+                /*
+                evaluate the condition
+                 */
+                ExpressionNode condition = ((IfNode) statement).condition;
+                InterpreterDataType run_condition = evaluate(locals, object, condition);
+                if(run_condition instanceof BooleanIDT)
+                {
+                    if(((BooleanIDT) run_condition).Value)
+                    {
+                        for(var if_statement: ((IfNode) statement).statements)
+                        {
+
+                        }
+                    }
+                    else if(((IfNode) statement).elseStatement.isPresent())
+                    {
+                        for(var else_statement : ((IfNode) statement).elseStatement.get().statements)
+                        {
+
+                        }
+                    }
+                }
+                else
+                {
+                    throw new Error("If statement condition must be a boolean");
+                }
+
+            }
+            //loop node
         }
 
     }
