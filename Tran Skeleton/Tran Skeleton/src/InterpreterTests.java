@@ -166,6 +166,22 @@ public class InterpreterTests {
         Assertions.assertEquals("15.0",c.getLast());
     }
 
+    @Test
+    public void Loop1_with_times() {
+        String program = "class LoopOne\n" +
+                "    shared start()\n" +
+                "        boolean keepGoing\n" +
+                "        number n\n" +
+                "        n = 10\n" +
+                "        keepGoing = true\n" +
+                "        loop n.times()\n" +
+                "            console.write(n)\n";
+
+        var tranNode = run(program);
+        var c = getConsole(tranNode);
+
+    }
+
 
 
 

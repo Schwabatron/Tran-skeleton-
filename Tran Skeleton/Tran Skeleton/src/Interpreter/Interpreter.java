@@ -33,6 +33,7 @@ public class Interpreter {
         console.methods.add(console_write);
         //adding class to tran_node
         top.Classes.add(console);
+
     }
 
     /**
@@ -373,6 +374,26 @@ public class Interpreter {
             }
             else if(statement instanceof LoopNode)
             {
+                if(((LoopNode) statement).expression instanceof MethodCallExpressionNode methodCallExpressionNode)
+                {
+                    if(methodCallExpressionNode.methodName.equals("times"))
+                    {
+                        Optional<InterpreterDataType> receiverValue = Optional.empty();
+                        if (methodCallExpressionNode.objectName.isPresent()) {
+                            receiverValue = Optional.of(findVariable(methodCallExpressionNode.objectName.get(), locals, object));
+                            if(receiverValue.get() instanceof NumberIDT value)
+                            {
+                                for(int i = 0; i < value.Value; i++)
+                                {
+                                    interpretStatementBlock(object, ((LoopNode) statement).statements, locals);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+
+
+                }
                 InterpreterDataType expression = evaluate(locals, object, ((LoopNode) statement).expression);
                 if(expression instanceof BooleanIDT) //test for boolean
                 {
@@ -381,6 +402,7 @@ public class Interpreter {
                         interpretStatementBlock(object, ((LoopNode) statement).statements, locals);
                     }
                 }
+
             }
         }
 
