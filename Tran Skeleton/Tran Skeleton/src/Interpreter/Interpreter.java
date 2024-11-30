@@ -134,6 +134,7 @@ public class Interpreter {
                }
            }
         }
+
         for (var localName : locals.keySet()) {
             if (localName.equals(mc.objectName.get())) {
                 for (var method : object.get().astNode.methods) {
@@ -357,17 +358,11 @@ public class Interpreter {
                 {
                     if(((BooleanIDT) run_condition).Value)
                     {
-                        for(var if_statement: ((IfNode) statement).statements)
-                        {
-
-                        }
+                        interpretStatementBlock(object, ((IfNode) statement).statements, locals);
                     }
                     else if(((IfNode) statement).elseStatement.isPresent())
                     {
-                        for(var else_statement : ((IfNode) statement).elseStatement.get().statements)
-                        {
-
-                        }
+                        interpretStatementBlock(object, ((IfNode) statement).elseStatement.get().statements, locals);
                     }
                 }
                 else
@@ -376,7 +371,17 @@ public class Interpreter {
                 }
 
             }
-            //loop node
+            else if(statement instanceof LoopNode)
+            {
+                InterpreterDataType expression = evaluate(locals, object, ((LoopNode) statement).expression);
+                if(expression instanceof BooleanIDT) //test for boolean
+                {
+                    while(((BooleanIDT)evaluate(locals, object, ((LoopNode) statement).expression)).Value)
+                    {
+                        interpretStatementBlock(object, ((LoopNode) statement).statements, locals);
+                    }
+                }
+            }
         }
 
     }
