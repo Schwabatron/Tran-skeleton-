@@ -2,10 +2,7 @@ package Interpreter;
 
 import AST.*;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class Interpreter {
     private TranNode top;
@@ -17,6 +14,26 @@ public class Interpreter {
      * @param top - the head of the AST
      */
     public Interpreter(TranNode top) {
+        this.top = top;
+        add_build_ins(top);
+       //starting point for the interpreter
+    }
+
+    private void add_build_ins(TranNode top)
+    {
+        ClassNode console = new ClassNode();
+        //Class info
+        console.name = "console"; //maybe change
+        BuiltInMethodDeclarationNode console_write = new ConsoleWrite();
+        //Method info
+        console_write.isShared = true;
+        console_write.isVariadic = true;
+        console_write.name = "write"; //maybe change
+        //Adding method
+        console.methods.add(console_write);
+        //adding class to tran_node
+        top.Classes.add(console);
+
     }
 
     /**
@@ -27,7 +44,30 @@ public class Interpreter {
      * Call "InterpretMethodCall" on that method, then return.
      * Throw an exception if no such method exists.
      */
-    public void start() {
+    public void start() throws ClassNotFoundException{
+        Interpreter interpreter = new Interpreter(top);
+        for(var class_name : interpreter.top.Classes) //Looping through all the classes
+        {
+            for(var method : class_name.methods)//Looping through all the methods in each class
+            {
+                /*
+                    If a method has the name start, is shared, has no params, and is not private
+                 */
+                if(method.isShared && method.name.equals("start") && method.parameters.isEmpty() && !method.isPrivate)
+                {
+                    /*
+                        - the start method has no parameters so we can make an empty list
+                        - Since the shared means it is not with a specific object, call with empty the method itself, and the list of params
+                     */
+                    ObjectIDT object= new ObjectIDT(class_name);
+                    List<InterpreterDataType> list = new ArrayList<>();
+                    interpretMethodCall(Optional.of(object), method, list);
+                    return;
+                }
+            }
+        }
+
+        throw new ClassNotFoundException("no start class found or start class declared incorrectly");
     }
 
     //              Running Methods
@@ -52,6 +92,61 @@ public class Interpreter {
      */
     private List<InterpreterDataType> findMethodForMethodCallAndRunIt(Optional<ObjectIDT> object, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc) {
         List<InterpreterDataType> result = null;
+
+        List<InterpreterDataType> parameters = getParameters(object, locals, mc); // Call to the getparameters() function
+
+        /*
+            Finding the method
+         */
+        if(mc.objectName.isEmpty()) //Checking if the
+        {
+           MethodDeclarationNode method = getMethodFromObject(object.get(), mc, parameters);
+           result = interpretMethodCall(object, method, parameters);
+           return result;
+        }
+        for(var name : top.Classes) //searches through the classes
+        {
+            String classname = name.name;
+            if(classname.equals(mc.objectName.get())) // if the method name is the same as the class name
+            {
+                for(var method : name.methods)
+                {
+                    if(method.name.equals(mc.methodName))
+                    {
+                        result = interpretMethodCall(object, method , parameters);
+                        return result;
+                    }
+                }
+                //result = interpretMethodCall(object, name.methods.getFirst() , parameters);
+                //return result;
+            }
+
+        }
+        //Setting up for members
+        for (var memberName : object.get().members.keySet()) {
+           if(memberName.equals(mc.objectName.get()))
+           {
+               for(var method : object.get().astNode.methods) {
+                   if(method.name.equals(mc.methodName))
+                   {
+                       result = interpretMethodCall(((ReferenceIDT) object.get().members.get(memberName)).refersTo, method , parameters);
+                       return result;
+                   }
+               }
+           }
+        }
+
+        for (var localName : locals.keySet()) {
+            if (localName.equals(mc.objectName.get())) {
+                for (var method : object.get().astNode.methods) {
+                    if (method.name.equals(mc.methodName)) {
+                        result = interpretMethodCall(((ReferenceIDT) locals.get(localName)).refersTo, method, parameters);
+                        return result;
+                    }
+                }
+            }
+        }
+
         return result;
     }
 
@@ -73,10 +168,64 @@ public class Interpreter {
      */
     private List<InterpreterDataType> interpretMethodCall(Optional<ObjectIDT> object, MethodDeclarationNode m, List<InterpreterDataType> values) {
         var retVal = new LinkedList<InterpreterDataType>();
+
+        if(m instanceof BuiltInMethodDeclarationNode)
+        {
+
+           List<InterpreterDataType> console = ((BuiltInMethodDeclarationNode) m).Execute(values);
+           retVal.addAll(console);
+           return retVal;
+        }
+
+        if(m.parameters.size() != values.size())
+        {
+            throw new IllegalArgumentException("the count and the number of parameters are mismatched");
+        }
+
+        /*
+            - Stores the method's local variables, including parameters and any variables created within the method.
+            - This acts as a symbol table for the current method call, allowing variables to be accessed by name.
+         */
+        HashMap<String, InterpreterDataType> locals = new HashMap<>();
+        //Adding all the parameters to the hashmap
+        for(int i = 0; i < m.parameters.size(); i++)
+        {
+            locals.put(m.parameters.get(i).name, values.get(i));
+        }
+        //Adding all the local variables to the hashmap
+        for(int i = 0; i < m.locals.size(); i++)
+        {
+            InterpreterDataType local = instantiate(m.locals.get(i).type);
+            locals.put(m.locals.get(i).name, local);
+        }
+        for(int i = 0; i < m.returns.size(); i++)
+        {
+            InterpreterDataType returnType = instantiate(m.returns.get(i).type);
+            locals.put(m.returns.get(i).name, returnType);
+        }
+
+
+        /*
+            interprets the statements located in the body of the method(Assignments, if, loop, method calls)
+        */
+        interpretStatementBlock(object, m.statements, locals);
+
+        /*
+            - Creating the return values
+            - these new values could've possibly been edited in locals in the statement block
+         */
+        for(var return_values : m.returns)
+        {
+            InterpreterDataType return_value = locals.get(return_values.name);
+            if(return_value != null)
+            {
+                retVal.add(return_value);
+            }
+        }
         return retVal;
     }
 
-    //              Running Constructors
+
 
     /**
      * This is a special case of the code for methods. Just different enough to make it worthwhile to split it out.
@@ -91,7 +240,24 @@ public class Interpreter {
      * @param mc  - the method call for this construction
      * @param newOne - the object that we just created that we are calling the constructor for
      */
-    private void findConstructorAndRunIt(Optional<ObjectIDT> callerObj, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc, ObjectIDT newOne) {
+    private void findConstructorAndRunIt(Optional<ObjectIDT> callerObj, HashMap<String, InterpreterDataType> locals, MethodCallStatementNode mc, ObjectIDT newOne)  {
+        List<InterpreterDataType> parameters = getParameters(callerObj, locals, mc);
+        Optional<ClassNode> class_node = getClassByName(mc.objectName.get());
+
+        if(class_node.isPresent())
+        {
+           for(var constructor : class_node.get().constructors)
+           {
+               if(doesConstructorMatch(constructor, mc, parameters))
+               {
+                   interpretConstructorCall(newOne, constructor, parameters);
+               }
+           }
+        }
+        else
+        {
+            throw new Error();
+        }
     }
 
     /**
@@ -106,6 +272,27 @@ public class Interpreter {
      * @param values - the parameter values being passed to the constructor
      */
     private void interpretConstructorCall(ObjectIDT object, ConstructorNode c, List<InterpreterDataType> values) {
+        if (c.parameters.size() != values.size()) {
+            throw new IllegalArgumentException("Parameter count mismatch for constructor call");
+        }
+
+        // Step 2: Create a local variables map
+        HashMap<String, InterpreterDataType> locals = new HashMap<>();
+
+        // Add constructor parameters to locals
+        for (int i = 0; i < c.parameters.size(); i++) {
+            String paramName = c.parameters.get(i).name;
+            locals.put(paramName, values.get(i));
+        }
+
+        // Step 3: Add local variables declared in the constructor
+        for (var localVar : c.locals) {
+            InterpreterDataType local = instantiate(localVar.type);
+            locals.put(localVar.name, local);
+        }
+
+        // Step 4: Run the constructor's body
+        interpretStatementBlock(Optional.of(object), c.statements, locals);
     }
 
     //              Running Instructions
@@ -134,6 +321,91 @@ public class Interpreter {
      * @param locals - the local variables
      */
     private void interpretStatementBlock(Optional<ObjectIDT> object, List<StatementNode> statements, HashMap<String, InterpreterDataType> locals) {
+        //Setting up code for iterating over each statement in the method, if, or loop
+        for(var statement: statements)
+        {
+            /*
+                - If the statement is an instance of an assignment node we get the target, the expression, and evaluate it
+                - Assign the value from evaluate to the target
+             */
+            if(statement instanceof AssignmentNode) {
+                InterpreterDataType target = findVariable(((AssignmentNode) statement).target.name,locals, object);
+                InterpreterDataType evaluate_assignment = evaluate(locals, object, ((AssignmentNode) statement).expression);
+                target.Assign(evaluate_assignment);
+            }
+            /*
+                -For method call statement node we call findMethodForMethodCallAndRunIt() and loop over the returned values
+             */
+            else if(statement instanceof MethodCallStatementNode) {
+                //Getting a list of the returned values from findMethodForMethodCallAndRunIt()
+                List<InterpreterDataType> returned_values = findMethodForMethodCallAndRunIt(object, locals, ((MethodCallStatementNode) statement));
+                for(var returned_value : returned_values)
+                {
+                   /*
+                   Need to get the name of the returned value and then put the value where the string matches in local hashmap
+                    */
+                    locals.put(returned_value.toString(), returned_value); //maybe tostring (come back later)
+                }
+            }
+            //if node
+            else if(statement instanceof IfNode)
+            {
+                /*
+                evaluate the condition
+                 */
+                ExpressionNode condition = ((IfNode) statement).condition;
+                InterpreterDataType run_condition = evaluate(locals, object, condition);
+                if(run_condition instanceof BooleanIDT)
+                {
+                    if(((BooleanIDT) run_condition).Value)
+                    {
+                        interpretStatementBlock(object, ((IfNode) statement).statements, locals);
+                    }
+                    else if(((IfNode) statement).elseStatement.isPresent())
+                    {
+                        interpretStatementBlock(object, ((IfNode) statement).elseStatement.get().statements, locals);
+                    }
+                }
+                else
+                {
+                    throw new Error("If statement condition must be a boolean");
+                }
+
+            }
+            else if(statement instanceof LoopNode)
+            {
+                if(((LoopNode) statement).expression instanceof MethodCallExpressionNode methodCallExpressionNode)
+                {
+                    if(methodCallExpressionNode.methodName.equals("times"))
+                    {
+                        Optional<InterpreterDataType> receiverValue = Optional.empty();
+                        if (methodCallExpressionNode.objectName.isPresent()) {
+                            receiverValue = Optional.of(findVariable(methodCallExpressionNode.objectName.get(), locals, object));
+                            if(receiverValue.get() instanceof NumberIDT value)
+                            {
+                                for(int i = 0; i < value.Value; i++)
+                                {
+                                    interpretStatementBlock(object, ((LoopNode) statement).statements, locals);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+
+
+                }
+                InterpreterDataType expression = evaluate(locals, object, ((LoopNode) statement).expression);
+                if(expression instanceof BooleanIDT) //test for boolean
+                {
+                    while(((BooleanIDT)evaluate(locals, object, ((LoopNode) statement).expression)).Value)
+                    {
+                        interpretStatementBlock(object, ((LoopNode) statement).statements, locals);
+                    }
+                }
+
+            }
+        }
+
     }
 
     /**
@@ -155,7 +427,153 @@ public class Interpreter {
      * @return a value
      */
     private InterpreterDataType evaluate(HashMap<String, InterpreterDataType> locals, Optional<ObjectIDT> object, ExpressionNode expression) {
-        throw new IllegalArgumentException();
+        if(expression instanceof BooleanLiteralNode) { //basic data type
+            return new BooleanIDT(((BooleanLiteralNode) expression).value);
+        }
+        else if(expression instanceof StringLiteralNode) { //basic data type
+            return new StringIDT(((StringLiteralNode) expression).value);
+        }
+        else if(expression instanceof NumericLiteralNode) { //basic data type
+            return new NumberIDT(((NumericLiteralNode) expression).value);
+        }
+        else if(expression instanceof BooleanOpNode){
+            InterpreterDataType left = evaluate(locals, object, ((BooleanOpNode) expression).left);
+            InterpreterDataType right = evaluate(locals, object, ((BooleanOpNode) expression).right);
+            if (left instanceof BooleanIDT && right instanceof BooleanIDT) { // if the left and right are now boolean literals we can evaluate them
+                boolean leftValue = ((BooleanIDT) left).Value;
+                boolean rightValue = ((BooleanIDT) right).Value;
+                BooleanOpNode.BooleanOperations op = ((BooleanOpNode) expression).op;
+
+                switch (op) {
+                    case and:
+                        return new BooleanIDT(leftValue && rightValue);
+                    case or:
+                        return new BooleanIDT(leftValue || rightValue);
+                    default:
+                        throw new IllegalArgumentException("Unsupported boolean operation");
+                }
+            }
+        }
+        else if(expression instanceof CompareNode) {
+            InterpreterDataType left = evaluate(locals, object, ((CompareNode) expression).left);
+            InterpreterDataType right = evaluate(locals, object, ((CompareNode) expression).right);
+
+            if (left instanceof NumberIDT && right instanceof NumberIDT) { // if the left and right are now boolean literals we can evaluate them
+                float leftValue = ((NumberIDT) left).Value;
+                float rightValue = ((NumberIDT) right).Value;
+                CompareNode.CompareOperations op = ((CompareNode) expression).op;
+                switch (op) {
+                    case lt:
+                        return new BooleanIDT(leftValue < rightValue);
+                    case le:
+                        return new BooleanIDT(leftValue <= rightValue);
+                    case gt:
+                        return new BooleanIDT(leftValue > rightValue);
+                    case ge:
+                        return new BooleanIDT(leftValue >= rightValue);
+                    case eq:
+                        return new BooleanIDT(leftValue == rightValue);
+                    case ne:
+                        return new BooleanIDT(leftValue != rightValue);
+                    default:
+                        throw new IllegalArgumentException("Unsupported comparison operation");
+                }
+            }
+        }
+        else if(expression instanceof MathOpNode) {
+            InterpreterDataType left = evaluate(locals, object, ((MathOpNode) expression).left);
+            InterpreterDataType right = evaluate(locals, object, ((MathOpNode) expression).right);
+
+            MathOpNode.MathOperations op = ((MathOpNode) expression).op;
+
+            // Check if both operands are numbers
+            if (left instanceof NumberIDT && right instanceof NumberIDT) {
+                float leftValue = ((NumberIDT) left).Value;
+                float rightValue = ((NumberIDT) right).Value;
+
+                switch (op) {
+                    case add:
+                        return new NumberIDT(leftValue + rightValue);
+                    case subtract:
+                        return new NumberIDT(leftValue - rightValue);
+                    case multiply:
+                        return new NumberIDT(leftValue * rightValue);
+                    case divide:
+                        if (rightValue == 0) {
+                            throw new ArithmeticException("Division by zero");
+                        }
+                        return new NumberIDT(leftValue / rightValue);
+                    default:
+                        throw new IllegalArgumentException("Unsupported math operation for numbers");
+                }
+            }
+            // Check if both operands are strings (only supports concatenation)
+            else if (left instanceof StringIDT && right instanceof StringIDT) {
+                if (op == MathOpNode.MathOperations.add) {
+                    String leftValue = ((StringIDT) left).Value;
+                    String rightValue = ((StringIDT) right).Value;
+                    return new StringIDT(leftValue + rightValue);
+                } else {
+                    throw new IllegalArgumentException("Only addition (+) is supported for strings");
+                }
+            }
+            else {//mixed / unsupported add types
+                throw new IllegalArgumentException("Incompatible types for math operation: " +
+                        left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName());
+            }
+        }
+        else if(expression instanceof MethodCallExpressionNode){
+            MethodCallStatementNode statementNode = new MethodCallStatementNode((MethodCallExpressionNode) expression);
+            List<InterpreterDataType> methodexp = findMethodForMethodCallAndRunIt(object, locals, statementNode); //Confusing rule here in the cast
+            return methodexp.get(0);
+        }
+        else if(expression instanceof NewNode) //Gets instances of new objects
+        {
+            String class_name = ((NewNode) expression).className;
+            Optional<ClassNode> classNode = getClassByName(class_name);
+            ObjectIDT newObject = new ObjectIDT(classNode.get());
+
+            for (var member : classNode.get().members) {
+                // Default initialize each member in the object
+                InterpreterDataType defaultValue = instantiate(member.declaration.type);
+                newObject.members.put(member.declaration.name, defaultValue);
+            }
+
+           // ObjectIDT newObject = new ObjectIDT(classNode.get());
+
+            List<InterpreterDataType> parameters = new ArrayList<>();
+
+            for(var param : ((NewNode) expression).parameters)
+            {
+                parameters.add(evaluate(locals, Optional.of(newObject), param));
+            }
+
+            MethodCallStatementNode mc = new MethodCallStatementNode();
+            mc.objectName = Optional.of(class_name);
+            mc.parameters = ((NewNode) expression).parameters;
+
+            findConstructorAndRunIt(object, locals, mc, newObject);
+            return newObject;
+        }
+        else if(expression instanceof VariableReferenceNode) {
+            InterpreterDataType variable = findVariable(((VariableReferenceNode) expression).name, locals, object);
+
+            if (variable instanceof NumberIDT) {
+                return new NumberIDT(((NumberIDT) variable).Value);
+            }
+            if(variable instanceof BooleanIDT) {
+                return new BooleanIDT(((BooleanIDT) variable).Value);
+            }
+            if(variable instanceof StringIDT) {
+                return new StringIDT(((StringIDT) variable).Value);
+            }
+        }
+        else
+        {
+            throw new IllegalArgumentException();
+        }
+
+        return null;//idk why it needs this
     }
 
     //              Utility Methods
@@ -174,7 +592,20 @@ public class Interpreter {
      * @return does this method match the method call?
      */
     private boolean doesMatch(MethodDeclarationNode m, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
-        return true;
+        if(m.name.equals(mc.methodName) && m.parameters.size() == parameters.size() && m.parameters.size() == mc.parameters.size())
+        {
+            int i = 0;
+            for(var name : m.parameters)
+            {
+                if(!typeMatchToIDT(name.type, parameters.get(i)))
+                {
+                    return false;
+                }
+                i++;
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -185,6 +616,23 @@ public class Interpreter {
      * @return does this constructor match the method call?
      */
     private boolean doesConstructorMatch(ConstructorNode c, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
+        if(c.parameters.size() != parameters.size()) // parameter count check
+        {
+            return false;
+        }
+
+        int i = 0;
+        for(var param_type : c.parameters)
+        {
+            String expected_type = param_type.type;
+            InterpreterDataType provided = parameters.get(i);
+            if(!typeMatchToIDT(expected_type, provided))
+            {
+                return false;
+            }
+            i++;
+        }
+
         return true;
     }
 
@@ -198,7 +646,13 @@ public class Interpreter {
      * @return the list of method values
      */
     private List<InterpreterDataType> getParameters(Optional<ObjectIDT> object, HashMap<String,InterpreterDataType> locals, MethodCallStatementNode mc) {
-        return null;
+        List<InterpreterDataType> parameterValues = new ArrayList<>();
+        //Getting the value of each parameter and adding them to the list to be returned
+        for (ExpressionNode paramExpr : mc.parameters) {
+            InterpreterDataType evaluatedParam = evaluate(locals, object, paramExpr);
+            parameterValues.add(evaluatedParam);
+        }
+        return parameterValues;
     }
 
     /**
@@ -213,7 +667,28 @@ public class Interpreter {
      * @return is this OK?
      */
     private boolean typeMatchToIDT(String type, InterpreterDataType idt) {
-        throw new RuntimeException("Unable to resolve type " + type);
+        switch (type) {
+            case "boolean":
+                return idt instanceof BooleanIDT;
+            case "number":
+                return idt instanceof NumberIDT;
+            case "string":
+                return idt instanceof StringIDT;
+            case "character":
+                return idt instanceof CharIDT;
+            default:
+                if (idt instanceof ReferenceIDT) {
+                    ReferenceIDT refIDT = (ReferenceIDT) idt;
+                    return refIDT.refersTo.equals(type);
+                }
+                else if(idt instanceof ObjectIDT) {
+                    ObjectIDT refIDT = (ObjectIDT) idt;
+                    return refIDT.astNode.interfaces.contains(type) || refIDT.astNode.name.equals(type); //maybe???
+                }
+                else {
+                    return false;
+                }
+        }
     }
 
     /**
@@ -226,6 +701,20 @@ public class Interpreter {
      * @return a method or throws an exception
      */
     private MethodDeclarationNode getMethodFromObject(ObjectIDT object, MethodCallStatementNode mc, List<InterpreterDataType> parameters) {
+        for(var method : object.astNode.methods)
+        {
+//            if(method.equals(mc.methodName))
+//            {
+//                if(doesMatch((MethodDeclarationNode) object.members.get(mc.methodName), mc, parameters))
+//                {
+//                    return (MethodDeclarationNode) object.members.get(mc.methodName);
+//                }
+//            }
+            if(doesMatch(method, mc, parameters))
+            {
+                return method;
+            }
+        }
         throw new RuntimeException("Unable to resolve method call " + mc);
     }
 
@@ -237,6 +726,12 @@ public class Interpreter {
      * @return either a class node or empty if that class doesn't exist
      */
     private Optional<ClassNode> getClassByName(String name) {
+        //loops over all the classes in the top node
+        for (ClassNode classNode : top.Classes) {
+            if (classNode.name.equals(name)) {
+                return Optional.of(classNode);
+            }
+        }
         return Optional.empty();
     }
 
@@ -249,7 +744,15 @@ public class Interpreter {
      * @return the IDT that we are looking for or throw an exception
      */
     private InterpreterDataType findVariable(String name, HashMap<String,InterpreterDataType> locals, Optional<ObjectIDT> object) {
-        throw new RuntimeException("Unable to find variable " + name);
+        if (locals.containsKey(name)) { //Check locals
+            return locals.get(name);
+        }
+        else if (object.isPresent() && object.get().members.containsKey(name)) { //check members
+            return object.get().members.get(name);
+        }
+        else {
+            throw new RuntimeException("Unable to find variable " + name);
+        }
     }
 
     /**
@@ -259,6 +762,21 @@ public class Interpreter {
      * @return an IDT with default values (0 for number, "" for string, false for boolean, ' ' for character)
      */
     private InterpreterDataType instantiate(String type) {
-        return null;
+        if(type.equals("number")){ //default number
+            return new NumberIDT(0);
+        }
+        else if(type.equals("string")){
+            return new StringIDT("");
+        }
+        else if(type.equals("boolean")){
+            return new BooleanIDT(false);
+        }
+        else if(type.equals("character")){
+            return new CharIDT(' ');
+        }
+        else{
+            return new ReferenceIDT();
+        }
+        //return null;
     }
 }

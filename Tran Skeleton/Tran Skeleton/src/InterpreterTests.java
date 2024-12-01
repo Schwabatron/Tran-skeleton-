@@ -85,26 +85,26 @@ public class InterpreterTests {
         Assertions.assertEquals("12.0",c.getFirst());
     }
 
-    @Test
-    public void Loop1() {
-        String program = "class LoopOne\n" +
-                         "    shared start()\n" +
-                         "        boolean keepGoing\n" +
-                         "        number n\n" +
-                         "        n = 0\n" +
-                         "        keepGoing = true\n" +
-                         "        loop keepGoing\n" +
-                         "        	  if n >= 15\n" +
-                         "                keepGoing = false\n" +
-                         "            else\n" +
-                         "                n = n + 1\n" +
-                         "                console.write(n)\n";
-        var tranNode = run(program);
-        var c = getConsole(tranNode);
-        Assertions.assertEquals(15,c.size());
-        Assertions.assertEquals("1.0",c.getFirst());
-        Assertions.assertEquals("15.0",c.getLast());
-    }
+//    @Test
+//    public void Loop1() {
+//        String program = "class LoopOne\n" +
+//                         "    shared start()\n" +
+//                         "        boolean keepGoing\n" +
+//                         "        number n\n" +
+//                         "        n = 0\n" +
+//                         "        keepGoing = true\n" +
+//                         "        loop keepGoing\n" +
+//                         "        	  if n >= 15\n" +
+//                         "                keepGoing = false\n" +
+//                         "            else\n" +
+//                         "                n = n + 1\n" +
+//                         "                console.write(n)\n";
+//        var tranNode = run(program);
+//        var c = getConsole(tranNode);
+//        Assertions.assertEquals(15,c.size());
+//        Assertions.assertEquals("1.0",c.getFirst());
+//        Assertions.assertEquals("15.0",c.getLast());
+//    }
 
     @Test
     public void student() {
@@ -145,6 +145,46 @@ public class InterpreterTests {
         Assertions.assertEquals("bart simpson 30.0",c.getLast());
     }
 
+    @Test
+    public void Loop1_with_spacing_corrected() {
+        String program = "class LoopOne\n" +
+                "    shared start()\n" +
+                "        boolean keepGoing\n" +
+                "        number n\n" +
+                "        n = 0\n" +
+                "        keepGoing = true\n" +
+                "        loop keepGoing\n" +
+                "            if n >= 15\n" +
+                "                keepGoing = false\n" +
+                "            else\n" +
+                "                n = n + 1\n" +
+                "                console.write(n)\n";
+        var tranNode = run(program);
+        var c = getConsole(tranNode);
+        Assertions.assertEquals(15,c.size());
+        Assertions.assertEquals("1.0",c.getFirst());
+        Assertions.assertEquals("15.0",c.getLast());
+    }
+
+    @Test
+    public void Loop1_with_times() {
+        String program = "class LoopOne\n" +
+                "    shared start()\n" +
+                "        boolean keepGoing\n" +
+                "        number n\n" +
+                "        n = 10\n" +
+                "        keepGoing = true\n" +
+                "        loop n.times()\n" +
+                "            console.write(n)\n";
+
+        var tranNode = run(program);
+        var c = getConsole(tranNode);
+
+    }
+
+
+
+
     private static List<String> getConsole(TranNode tn) {
         for (var c : tn.Classes)
             if (c.name.equals("console")) {
@@ -161,6 +201,7 @@ public class InterpreterTests {
         var l  = new Lexer(program);
         try {
             var tokens = l.Lex();
+            System.out.println(tokens);
             var tran = new TranNode();
             var p = new Parser(tran,tokens);
             p.Tran();

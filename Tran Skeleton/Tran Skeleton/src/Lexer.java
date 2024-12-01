@@ -90,6 +90,7 @@ public class Lexer {
                 input.getCharacter();
                 row_number++;
                 col_number = 1;
+                //boolean isblankline = true;
                 while (!input.isAtEnd() && (input.peekCharacter() == ' ' || input.peekCharacter() == '\t')) {
                     if (input.peekCharacter() == '\t')
                     {
@@ -101,10 +102,21 @@ public class Lexer {
                         input.getCharacter();
                         col_number++;
                     }
+                    //if (!Character.isWhitespace(input.peekCharacter())) {
+                    //    isblankline = false;
+                    //}
 
-                    indentationlevel =(int) ((col_number -1 ) / 4);
+                   // indentationlevel =(int) ((col_number -1 ) / 4);
 
                 }
+
+                //NEW LOGIC: if it is a blank line all it needs is the newline and we dont need to print the dedent and indent again for it
+                if (input.peekCharacter() == '\n' || input.isAtEnd()) {
+                    continue; // Skip further processing if it's a blank line
+                }
+
+                indentationlevel = (col_number - 1) / 4;
+
                 if(((col_number - 1) % 4 != 0) && col_number != 1)
                 {
                     throw new SyntaxErrorException("indents must be 4 spaces", row_number, col_number);

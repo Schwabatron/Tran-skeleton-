@@ -177,6 +177,12 @@ public class Parser {
 
         RequireNewLine();
 
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
+        //RequireNewLine();
+
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
         {
             throw new SyntaxErrorException("Expected Indent", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
@@ -251,6 +257,11 @@ public class Parser {
 
         RequireNewLine();
 
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
+
         //Parse Method body for statments and local var declarations
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
         if(tokens.matchAndRemove(Token.TokenTypes.INDENT).isEmpty())
@@ -259,7 +270,7 @@ public class Parser {
         }
 
         //Statement = If | Loop | MethodCall | Assignment
-        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())//Now I need to parse statements and variable declarations
+        while(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty() && !tokens.done())//Now I need to parse statements and variable declarations
         {
             if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.WORD))
             {
@@ -320,6 +331,11 @@ public class Parser {
         }
 
         RequireNewLine();
+
+        while(tokens.peek(0).get().getType() != (Token.TokenTypes.INDENT))
+        {
+            RequireNewLine();
+        }
 
         //parse method body
         //MethodBody = INDENT { VariableDeclaration NEWLINE } {Statement} DEDENT
@@ -501,10 +517,10 @@ public class Parser {
         {
             ifNode.statements = statements;
         }
-        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
-        {
-            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
-        }
+//        if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
+//        {
+//            throw new SyntaxErrorException("Expected DEDENT", tokens.getCurrentLine(), tokens.getCurrentColumnNumber());
+//        }
 
         if(tokens.peek(0).get().getType() == Token.TokenTypes.ELSE)
         {
@@ -543,6 +559,7 @@ public class Parser {
         }
         else
         {
+            loopNode.assignment = Optional.empty();
             Optional<ExpressionNode> boolexp = BoolexpTerm();
             if(boolexp.isPresent())
             {
@@ -601,6 +618,7 @@ public class Parser {
     private Optional<ElseNode> parseElseNode() throws SyntaxErrorException
     {
         ElseNode elseNode = new ElseNode();
+        List<StatementNode> statements = new ArrayList<>();
         if(tokens.matchAndRemove(Token.TokenTypes.ELSE).isEmpty())
         {
             return Optional.empty();
@@ -620,13 +638,17 @@ public class Parser {
             Optional<StatementNode> statementNode = parseStatementNode();
             if(statementNode.isPresent())
             {
-                elseNode.statements.add(statementNode.get());
+                statements.add(statementNode.get());
             }
             else
             {
                 RequireNewLine();
             }
 
+        }
+        if(!statements.isEmpty())
+        {
+            elseNode.statements = statements;
         }
         if(tokens.matchAndRemove(Token.TokenTypes.DEDENT).isEmpty())
         {
@@ -861,8 +883,13 @@ public class Parser {
             methodCallExpressionNode.objectName = Optional.of(tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue()); //Setting the obj name
             tokens.matchAndRemove(Token.TokenTypes.DOT); //parsing the dot(doesn't really do anything
         }
+        else
+        {
+            methodCallExpressionNode.objectName = Optional.empty();
+        }
         if(tokens.nextTwoTokensMatch(Token.TokenTypes.WORD, Token.TokenTypes.LPAREN))
         {
+
             methodCallExpressionNode.methodName = tokens.matchAndRemove(Token.TokenTypes.WORD).get().getValue(); //Setting the Method name
             tokens.matchAndRemove(Token.TokenTypes.LPAREN); //parsing the left paren
 
